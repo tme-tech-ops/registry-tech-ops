@@ -5,9 +5,9 @@ description: >
 
 imports:
   - dell/types/types.yaml
-  - registry_app/definitions.yaml
-  - registry_app/inputs.yaml
-  - registry_app/outputs.yaml
+  - tech-ops/definitions.yaml
+  - tech-ops/inputs.yaml
+  - tech-ops/outputs.yaml
 
 input_groups:
   deployment_target:

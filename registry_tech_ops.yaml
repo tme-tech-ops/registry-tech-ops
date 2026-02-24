@@ -17,6 +17,39 @@ input_groups:
     inputs:
       - vm_deployment_id 
 
+  registry_config:
+    display_label: Registry Configuration
+    collapsible: false
+    index: 1
+    inputs:
+      - harbor_version
+      - harbor_port
+      - harbor_username
+      - harbor_password
+      - docker_bridge_cidr
+      - projects
+      - debug
+
+  certificate_config:
+    display_label: Self-Signed Certificates
+    collapsible: true
+    index: 2
+    inputs:
+     - duration_days
+     - common_name
+     - country
+     - state
+     - location
+     - organization
+
+  env_config:
+    display_label: Enironment Configuration
+    collapsible: false
+    index: 2
+    inputs:
+      - script_url
+      - offline_mode
+      - offline_binary_secret
 
 labels:
   csys-obj-type:

@@ -113,8 +113,7 @@ node_templates:
           executor: central_deployment_agent
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
-            commands:
-              <<: *run_install_cmds
+            commands: *run_install_cmds
             fabric_env:
               shell_env:
                 <<: *shell_env

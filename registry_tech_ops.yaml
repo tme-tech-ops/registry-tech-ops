@@ -1,0 +1,41 @@
+tosca_definitions_version: dell_1_1
+
+description: >
+  This blueprint Deploys an NGINX server to serve static files on an existing POC VM deployment
+
+imports:
+  - dell/types/types.yaml
+  - registry_app/definitions.yaml
+  - registry_app/inputs.yaml
+  - registry_app/outputs.yaml
+
+input_groups:
+  deployment_target:
+    display_label: Deployment Target
+    collapsible: false
+    index: 0
+    inputs:
+      - vm_deployment_id 
+
+
+labels:
+  csys-obj-type:
+    values:
+      - environment
+  target_environment:
+    values:
+      - ned
+  vendor:
+    values:
+      - tme-tech-ops
+  solution:
+    values:
+      - registry-tech-ops
+  version:
+    values:
+      - "4.1.0.0"
+
+blueprint_labels:
+  env:
+    values:
+      - NED

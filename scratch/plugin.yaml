@@ -1,0 +1,16 @@
+plugins:
+
+  fabric:
+    executor: central_deployment_agent
+    package_name: fabric-plugin
+    package_version: '3.3.2.0'
+
+blueprint_labels:
+  obj-type:
+    values:
+      - fabric
+
+labels:
+  obj-type:
+    values:
+      - fabric

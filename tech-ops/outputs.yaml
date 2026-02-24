@@ -1,0 +1,13 @@
+capabilities:
+
+  harbor_url:
+    description: Harbor UI
+    value: { concat: ['https://', { get_attribute: [ vm_platform, capabilities, vm_ip ] }, ':', { get_input: harbor_port }] }
+
+  harbor_username:
+    description: Harbor username
+    value: { get_input: harbor_username }
+
+  harbor_password:
+    description: Harbor password
+    value: { get_input: harbor_password }

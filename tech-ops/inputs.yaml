@@ -1,0 +1,290 @@
+inputs:
+
+# Deployment Target Inputs
+  vm_deployment_id:
+    type: deployment_id
+    hidden: false
+    allow_update: false
+    display_label: POC VM Deployment Instance
+    description: |
+      POC VM Deployment Instance
+    constraints:
+    - labels:
+      - csys-obj-type: environment
+      - solution: edge-cloud-init
+    display:
+      group: deployment_target
+      index: 1
+
+  ssh_user_private_key:
+    type: secret_key
+    hidden: true
+    allow_update: false
+    required: false
+    display_label: SSH Private Key Secret from the edge-cloud-init deployment
+    description: |
+      Name of the SSH private key secret in the secret store for the VM user
+    display:
+      group: deployment_target
+      index: 5
+
+# Self-Signed Certificate Inputs
+  duration_days:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Duration
+    description: |
+      Self-Signed Certificate Duration (in days)
+    default: 365
+    display:
+      group: certificate
+      index: 1
+
+  common_name:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Common Name
+    description: |
+      Self-Signed Certificate Common Name
+    default: "registry.harbor.edge.lab"
+    display:
+      group: certificate
+      index: 5
+
+  country:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Country
+    description: |
+      Self-Signed Certificate Country
+    default: "US"
+    display:
+      group: certificate
+      index: 10
+
+  state:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: State
+    description: |
+      Self-Signed Certificate State
+    default: "MA"
+    display:
+      group: certificate
+      index: 15
+
+  location:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Location
+    description: |
+      Self-Signed Certificate Location
+    default: "Hopkinton"
+    display:
+      group: certificate
+      index: 20
+
+  organization:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Organization
+    description: |
+      Self-Signed Certificate Organization
+    default: "EdgeLab"
+    display:
+      group: certificate
+      index: 25
+
+# Harbor Inputs
+  harbor_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Harbor Version
+    description: |
+      Harbor release version
+    default: "2.14.1"
+    display:
+      group: harbor_settings
+      index: 1
+
+  harbor_port:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Harbor Port
+    description: |
+      Harbor Port
+    default: 443
+    display:
+      group: harbor_settings
+      index: 5
+
+  harbor_username:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Harbor username
+    description: |
+      Harbor basic authentication username
+    default: "admin"
+    display:
+      group: harbor_settings
+      index: 10
+
+  harbor_password:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Harbor Password
+    description: |
+      Harbor basic authentication password
+    default: "changeme"
+    display:
+      group: harbor_settings
+      index: 15
+
+  docker_bridge_cidr:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Docker CIDR
+    description: |
+      IP CIDR range for Docker (i.e. 172.17.0.1/16)
+    default: "172.17.0.1/16"
+    display:
+      group: harbor_settings
+      index: 20
+
+  projects:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true    
+    display_label: Registry Projects
+    description: |
+      Auto-created registry projects
+    default: ""
+    display:
+      group: harbor_settings
+      index: 25
+
+  debug:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Debug Logging
+    description: |
+      Set to 0 or 1 to enable or disable debug logging
+    default: 1
+    display:
+      group: harbor_settings
+      index: 30
+
+# Env Config Inputs
+
+  script_url:
+    type: string
+    hidden: false
+    exclusive_with: offline_mode
+    allow_update: true
+    display_label: Script URL
+    description: |
+      URL of the script to be executed
+    default: "https://raw.githubusercontent.com/Chubtoad5/harbor-registry-installer/main/install_harbor.sh"
+    display:
+      group: env_config
+      index: 1
+
+  offline_mode:
+    type: boolean
+    hidden: false
+    allow_update: true
+    display_label: Offline Mode
+    description: |
+      Set to true to use offline mode
+    default: false
+    display:
+      group: env_config
+      index: 5
+
+  offline_binary_secret:
+    type: secret_key
+    hidden: false
+    only_with: offline_mode
+    allow_update: true
+    display_label: Offline Binary Configuration Secret
+    description: |
+      Secret containing url, username, access_token, and 
+      version of the offline archive binary.
+    constraints:
+    - type: binary_configuration
+    display:
+      group: env_config
+      index: 10
+
+  offline_binary_url:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Offline Binary URL
+    description: |
+      URL of the OS Image that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: offline_binary_secret
+      - binary_image_url
+
+  offline_binary_access_user:
+    type: string
+    hidden: true
+    display_label: Offline Binary Username
+    description: |
+      User name of the Repository of the Image Binary that will be
+      used to create the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: offline_binary_secret
+      - binary_image_access_user
+
+  offline_binary_access_token:
+    type: list
+    hidden: true
+    display_label: Offline Binary Access Token
+    description: |
+      Name of the secret storing the Token to the Repository of the
+      Image Binary that will be used to create the Virtual Machine.
+    default:
+    - get_input: offline_binary_secret
+    - binary_image_access_token
+
+  offline_binary_version:
+    type: string
+    hidden: true
+    display_label: Offline Binary Version
+    description: |
+      Ofline binary version that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: offline_binary_secret
+      - binary_image_version

@@ -1,0 +1,128 @@
+tosca_definitions_version: dell_1_1
+
+imports:
+  - dell/types/types.yaml
+  - plugin:edge-plugin
+  - plugin:utilities-plugin?version=>=3.1.3.0
+  - plugin:fabric-plugin?version=>=3.3.2.0
+
+dsl_definitions:
+
+# App deploy
+  run_install_cmds: &run_install_cmds
+    - sudo -E ./install_harbor.sh install-harbor
+  run_uninstall_cmds: &run_uninstall_cmds
+    - sudo -E ./install_harbor.sh uninstall-harbor
+  run_offline_prep_cmds: &run_offline_prep_cmds
+    - sudo -E ./install_harbor.sh offline-prep
+  shell_env: &shell_env
+    DURATION_DAYS: { get_input: duration_days }
+    COMMON_NAME: { get_input: common_name }
+    COUNTRY: { get_input: country }
+    STATE: { get_input: state }
+    LOCATION: { get_input: location }
+    ORGANIZATION: { get_input: organization }
+    HARBOR_VERSION: { get_input: harbor_version }
+    HARBOR_PORT: { get_input: harbor_port }
+    HARBOR_USERNAME: { get_input: harbor_username }
+    HARBOR_PASSWORD: { get_input: harbor_password }
+    DOCKER_BRIDGE_CIDR: { get_input: docker_bridge_cidr }
+    PROJECTS: { get_input: projects }
+    DEBUG: { get_input: debug }
+
+# Get target ID and VM info
+  get_target_id: &get_target_id
+    implementation: tech-ops/scripts/get_target_id.py
+    executor: central_deployment_agent
+    inputs:
+      service_tag: { get_attribute: [vm_platform, capabilities, service_tag] }
+  get_vm_info: &get_vm_info
+    implementation: fabric.fabric_plugin.tasks.run_script
+    inputs:
+      script_path: tech-ops/scripts/get_vm_info.sh
+      fabric_env:
+        host_string:
+          get_attribute: [vm_platform, capabilities, vm_name]
+        user:
+          get_attribute: [vm_platform, capabilities, vm_user_name]
+        key:
+          get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
+        port: 22
+      proxy_settings:
+        get_attribute: [ SELF, connection_proxy_settings ]
+
+node_templates:
+
+  vm_platform:
+    type: dell.nodes.SharedResource
+    properties:
+      resource_config:
+        deployment:
+          id: { get_input: vm_deployment_id }
+
+  vm_info:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          <<: *get_target_id
+        start:
+          <<: *get_vm_info
+        preupdate:
+          <<: *get_target_id
+        update:
+          <<: *get_vm_info
+    relationships:
+       - type: dell.relationships.depends_on
+         target: vm_platform
+
+  env_precheck:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            script_path: tech-ops/scripts/env_precheck.sh
+            process:
+              env:
+                OFFLINE_MODE: { get_input: offline_mode }
+                OFFLINE_BINARY_URL: { get_input: offline_binary_url }
+                OFFLINE_BINARY_USER: { get_input: offline_binary_user }
+                OFFLINE_BINARY_PASSWORD: { get_input: offline_binary_password }
+                SCRIPT_URL: { get_input: script_url }
+            fabric_env:
+              host_string:
+                get_attribute: [vm_platform, capabilities, vm_name]
+              user:
+                get_attribute: [vm_platform, capabilities, vm_user_name]
+              key:
+                get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
+              port: 22
+            proxy_settings:
+              get_attribute: [ SELF, connection_proxy_settings ]
+    relationships:
+       - type: dell.relationships.depends_on
+         target: vm_info
+
+  install_app:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            commands:
+              <<: *run_install_cmds
+            fabric_env:
+              shell_env:
+                <<: *shell_env
+              host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+              user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+              key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+              port: 22
+            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+    relationships:
+       - type: dell.relationships.depends_on
+         target: env_precheck

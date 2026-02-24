@@ -88,8 +88,8 @@ node_templates:
               env:
                 OFFLINE_MODE: { get_input: offline_mode }
                 OFFLINE_BINARY_URL: { get_input: offline_binary_url }
-                OFFLINE_BINARY_USER: { get_input: offline_binary_user }
-                OFFLINE_BINARY_PASSWORD: { get_input: offline_binary_password }
+                OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
+                OFFLINE_BINARY_PASSWORD: { get_input: offline_binary_access_token }
                 SCRIPT_URL: { get_input: script_url }
             fabric_env:
               host_string:

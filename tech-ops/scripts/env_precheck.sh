@@ -13,7 +13,7 @@ if [[ $OFFLINE_MODE == "true" ]]; then
             exit 1
         fi
         echo "Extracting offline binary..."
-        tar -xzf $(basename $OFFLINE_BINARY_URL)
+        tar -xzf $(basename $OFFLINE_BINARY_URL) -C ~/
         if [[ $? -ne 0 ]]; then 
             echo "Failed to extract offline binary."
             exit 1

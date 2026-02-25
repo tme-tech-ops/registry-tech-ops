@@ -30,18 +30,6 @@ input_groups:
       - projects
       - debug
 
-  certificate_config:
-    display_label: Self-Signed Certificates
-    collapsible: true
-    index: 2
-    inputs:
-     - duration_days
-     - common_name
-     - country
-     - state
-     - location
-     - organization
-
   env_config:
     display_label: Enironment Configuration
     collapsible: false
@@ -50,6 +38,18 @@ input_groups:
       - script_url
       - offline_mode
       - offline_binary_secret
+
+  certificate_config:
+    display_label: Self-Signed Certificates
+    collapsible: true
+    index: 3
+    inputs:
+     - duration_days
+     - common_name
+     - country
+     - state
+     - location
+     - organization
 
 labels:
   csys-obj-type:

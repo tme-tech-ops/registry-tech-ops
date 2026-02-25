@@ -209,7 +209,7 @@ inputs:
     display_label: Script URL
     description: |
       URL of the script to be executed
-    default: "https://raw.githubusercontent.com/Chubtoad5/harbor-registry-installer/main/install_harbor.sh"
+    default: "https://github.com/Chubtoad5/harbor-registry-installer/raw/refs/heads/main/install_harbor.sh"
     display:
       group: env_config
       index: 1

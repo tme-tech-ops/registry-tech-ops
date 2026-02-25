@@ -100,7 +100,7 @@ node_templates:
                 get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
               port: 22
             proxy_settings:
-              get_attribute: [ SELF, connection_proxy_settings ]
+              get_attribute: [ vm_info, connection_proxy_settings ]
     relationships:
        - type: dell.relationships.depends_on
          target: vm_info

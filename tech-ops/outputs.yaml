@@ -1,13 +1,37 @@
 capabilities:
 
-  harbor_url:
-    description: Harbor UI
-    value: { concat: ['https://', { get_attribute: [ vm_platform, capabilities, vm_ip ] }, ':', { get_input: harbor_port }] }
-
   harbor_username:
     description: Harbor username
-    value: { get_input: harbor_username }
+    value: { get_attribute: [ env_postcheck, capabilities, harbor_username ] }
 
   harbor_password:
     description: Harbor password
-    value: { get_input: harbor_password }
+    value: { get_attribute: [ env_postcheck, capabilities, harbor_password ] }
+
+  harbor_running:
+    description: Harbor service running status
+    value: { get_attribute: [ env_postcheck, capabilities, harbor_running ] }
+
+  harbor_ip_url:
+    description: Harbor URL via IP address
+    value: { get_attribute: [ env_postcheck, capabilities, harbor_ip_url ] }
+
+  harbor_fqdn_url:
+    description: Harbor URL via FQDN
+    value: { get_attribute: [ env_postcheck, capabilities, harbor_fqdn_url ] }
+
+  offline_package_generated:
+    description: Whether offline package was generated
+    value: { get_attribute: [ env_postcheck, capabilities, offline_package_generated ] }
+
+  offline_package_name:
+    description: Name of the offline package
+    value: { get_attribute: [ env_postcheck, capabilities, offline_package_name ] }
+
+  offline_package_uploaded:
+    description: Whether offline package was uploaded
+    value: { get_attribute: [ env_postcheck, capabilities, offline_package_uploaded ] }
+
+  offline_package_url:
+    description: URL where offline package was uploaded
+    value: { get_attribute: [ env_postcheck, capabilities, offline_package_url ] }

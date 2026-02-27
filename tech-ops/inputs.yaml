@@ -46,7 +46,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Common Name
     description: |
       Self-Signed Certificate Common Name
@@ -112,7 +112,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Harbor Version
     description: |
       Harbor release version
@@ -125,7 +125,7 @@ inputs:
     type: integer
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Harbor Port
     description: |
       Harbor Port
@@ -138,7 +138,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Harbor username
     description: |
       Harbor basic authentication username
@@ -151,7 +151,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Harbor Password
     description: |
       Harbor basic authentication password
@@ -164,7 +164,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Docker CIDR
     description: |
       IP CIDR range for Docker (i.e. 172.17.0.1/16)
@@ -177,7 +177,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true    
+    allow_update: false    
     display_label: Registry Projects
     description: |
       Auto-created registry projects
@@ -201,6 +201,33 @@ inputs:
 
 # Env Config Inputs
 
+  offline_mode:
+    type: boolean
+    hidden: false
+    allow_update: true
+    display_label: Airgapped Mode
+    description: |
+      Set to true to download and install from specified offline package
+    default: false
+    display:
+      group: env_config
+      index: 1
+
+  offline_binary_secret:
+    type: secret_key
+    hidden: false
+    only_with: offline_mode
+    allow_update: true
+    display_label: Offline Binary Configuration Secret
+    description: |
+      Secret containing url, username, access_token, and 
+      version of the offline archive binary.
+    constraints:
+    - type: binary_configuration
+    display:
+      group: env_config
+      index: 5
+
   run_arg:
     type: string
     hidden: false
@@ -216,7 +243,7 @@ inputs:
         - "offline-prep"
     display:
       group: env_config
-      index: 1  
+      index: 10
 
   script_url:
     type: string
@@ -229,34 +256,33 @@ inputs:
     default: "https://github.com/Chubtoad5/harbor-registry-installer/raw/refs/heads/main/install_harbor.sh"
     display:
       group: env_config
-      index: 1
+      index: 15
 
-  offline_mode:
+  upload_package:
     type: boolean
     hidden: false
     allow_update: true
-    display_label: Airgapped Mode
+    display_label: Upload offline-prep package
     description: |
-      Set to true to download and install from specified offline package
+      Only for offline-prep install task, uploads the offline package to http server
     default: false
     display:
       group: env_config
-      index: 5
+      index: 20
 
-  offline_binary_secret:
+  upload_binary_secret:
     type: secret_key
     hidden: false
-    only_with: offline_mode
+    only_with: upload_package
     allow_update: true
-    display_label: Offline Binary Configuration Secret
+    display_label: Upload URL location
     description: |
-      Secret containing url, username, access_token, and 
-      version of the offline archive binary.
+      Binary configuration secret pointing to the upload location (i.e. https://myfilerserver.lab/upload_dir/).
     constraints:
     - type: binary_configuration
     display:
       group: env_config
-      index: 10
+      index: 25
 
   hide_log_output:
     type: list
@@ -273,8 +299,9 @@ inputs:
         - "stderr"
     display:
       group: env_config
-      index: 15
+      index: 30
 
+# Hidden Inputs
   offline_binary_url:
     type: string
     hidden: true
@@ -321,4 +348,52 @@ inputs:
     default:
       get_secret:
       - get_input: offline_binary_secret
+      - binary_image_version
+
+  upload_binary_url:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Upload Binary URL
+    description: |
+      URL of the OS Image that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: upload_binary_secret
+      - binary_image_url
+
+  upload_binary_access_user:
+    type: string
+    hidden: true
+    display_label: Upload Binary Username
+    description: |
+      User name of the Repository of the Image Binary that will be
+      used to create the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: upload_binary_secret
+      - binary_image_access_user
+
+  upload_binary_access_token:
+    type: list
+    hidden: true
+    display_label: Upload Binary Access Token
+    description: |
+      Name of the secret storing the Token to the Repository of the
+      Image Binary that will be used to create the Virtual Machine.
+    default:
+    - get_input: upload_binary_secret
+    - binary_image_access_token
+
+  upload_binary_version:
+    type: string
+    hidden: true
+    display_label: Upload Binary Version
+    description: |
+      Ofline binary version that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: upload_binary_secret
       - binary_image_version

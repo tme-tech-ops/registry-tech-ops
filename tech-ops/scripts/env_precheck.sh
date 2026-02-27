@@ -18,6 +18,7 @@ if [[ $OFFLINE_MODE == "true" ]]; then
             ctx logger info "Failed to extract offline binary."
             exit 1
         fi
+        ctx logger info "Offline binary downloaded and extracted."
     fi
 else
     ctx logger info "Online mode detected."
@@ -31,4 +32,5 @@ else
         exit 1
     fi
     chmod +x ~/$(basename $SCRIPT_URL)
+    ctx logger info "Install script downloaded and made executable."
 fi

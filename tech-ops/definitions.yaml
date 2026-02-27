@@ -144,3 +144,33 @@ node_templates:
     relationships:
        - type: dell.relationships.depends_on
          target: env_precheck
+
+  env_postcheck:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            script_path: tech-ops/scripts/env_postcheck.sh
+            process:
+              env:
+                HARBOR_PORT: { get_input: harbor_port }
+                HARBOR_USERNAME: { get_input: harbor_username }
+                HARBOR_PASSWORD: { concat: ['"', { get_input: harbor_password }, '"'] }
+                COMMON_NAME: { get_input: common_name }
+                UPLOAD_OFFLINE_PACKAGE: { get_input: upload_package }
+                UPLOAD_BASE_URL: { get_secret: { get_input: upload_binary_secret } }
+                UPLOAD_OFFLINE_PACKAGE_USER: { get_secret: { get_input: upload_binary_secret } }
+                UPLOAD_OFFLINE_PACKAGE_PASSWORD: { get_secret: { get_input: upload_binary_secret } }
+            fabric_env:
+              host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+              user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+              key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+              port: 22
+            hide_output: { get_input: hide_log_output }
+            proxy_settings:
+              get_attribute: [ vm_info, connection_proxy_settings ]
+    relationships:
+       - type: dell.relationships.depends_on
+         target: install_app

@@ -1,7 +1,7 @@
 tosca_definitions_version: dell_1_1
 
 description: >
-  This blueprint Deploys an NGINX server to serve static files on an existing POC VM deployment
+  This blueprint Deploys a Harbor registry on an existing edge-cloud-init deployment
 
 imports:
   - dell/types/types.yaml
@@ -39,6 +39,8 @@ input_groups:
       - script_url
       - offline_mode
       - offline_binary_secret
+      - upload_package
+      - upload_binary_secret
       - hide_log_output
 
   certificate_config:

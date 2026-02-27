@@ -10,11 +10,9 @@ dsl_definitions:
 
 # App deploy
   run_install_cmds: &run_install_cmds
-    - sudo -E ./install_harbor.sh install-harbor
+    - sudo -E ./install_harbor.sh { get_input: run_arg }
   run_uninstall_cmds: &run_uninstall_cmds
     - sudo -E ./install_harbor.sh uninstall-harbor
-  run_offline_prep_cmds: &run_offline_prep_cmds
-    - sudo -E ./install_harbor.sh offline-prep
   shell_env: &shell_env
     DURATION_DAYS: { get_input: duration_days }
     COMMON_NAME: { get_input: common_name }
@@ -29,6 +27,15 @@ dsl_definitions:
     DOCKER_BRIDGE_CIDR: { get_input: docker_bridge_cidr }
     PROJECTS: { get_input: projects }
     DEBUG: { get_input: debug }
+
+  command_fabric_env: &command_fabric_env
+    shell_env:
+      <<: *shell_env
+    host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+    user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+    key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+    port: 22
+    hide_output: { get_input: hide_log_output }
 
 # Get target ID and VM info
   get_target_id: &get_target_id
@@ -48,6 +55,7 @@ dsl_definitions:
         key:
           get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
         port: 22
+        hide_output: { get_input: hide_log_output }
       proxy_settings:
         get_attribute: [ SELF, connection_proxy_settings ]
 
@@ -92,13 +100,11 @@ node_templates:
                 OFFLINE_BINARY_PASSWORD: { get_input: offline_binary_access_token }
                 SCRIPT_URL: { get_input: script_url }
             fabric_env:
-              host_string:
-                get_attribute: [vm_platform, capabilities, vm_name]
-              user:
-                get_attribute: [vm_platform, capabilities, vm_user_name]
-              key:
-                get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
+              host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+              user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+              key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
               port: 22
+            hide_output: { get_input: hide_log_output }
             proxy_settings:
               get_attribute: [ vm_info, connection_proxy_settings ]
     relationships:
@@ -113,15 +119,26 @@ node_templates:
           executor: central_deployment_agent
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
+            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
             commands: *run_install_cmds
             fabric_env:
-              shell_env:
-                <<: *shell_env
-              host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
-              user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
-              key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
-              port: 22
+              <<: *command_fabric_env
+        update:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
             proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            commands: *run_install_cmds
+            fabric_env:
+              <<: *command_fabric_env
+        stop:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            commands: *run_uninstall_cmds
+            fabric_env:
+              <<: *command_fabric_env
     relationships:
        - type: dell.relationships.depends_on
          target: env_precheck

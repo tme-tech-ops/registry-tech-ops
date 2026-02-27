@@ -201,6 +201,22 @@ inputs:
 
 # Env Config Inputs
 
+  run_arg:
+    type: string
+    hidden: false
+    exclusive_with: offline_mode
+    allow_update: true
+    display_label: Install Task
+    description: |
+      Install from internet or create offline package
+    default: "install-harbor"
+    constraints:
+    - "install-harbor"
+    - "offline-prep"
+    display:
+      group: env_config
+      index: 1  
+
   script_url:
     type: string
     hidden: false
@@ -218,9 +234,9 @@ inputs:
     type: boolean
     hidden: false
     allow_update: true
-    display_label: Offline Mode
+    display_label: Airgapped Mode
     description: |
-      Set to true to use offline mode
+      Set to true to download and install from specified offline package
     default: false
     display:
       group: env_config
@@ -240,6 +256,22 @@ inputs:
     display:
       group: env_config
       index: 10
+
+  hide_log_output:
+    type: string
+    hidden: false
+    allow_update: true
+    display_label: Log Output Settings
+    description: |
+      Set to true to hide log output
+    default: "stdout"
+    constraints:
+    - "both"
+    - "stdout"
+    - "stderr"
+    display:
+      group: env_config
+      index: 15
 
   offline_binary_url:
     type: string

@@ -35,9 +35,11 @@ input_groups:
     collapsible: false
     index: 2
     inputs:
+      - run_arg
       - script_url
       - offline_mode
       - offline_binary_secret
+      - hide_log_output
 
   certificate_config:
     display_label: Self-Signed Certificates

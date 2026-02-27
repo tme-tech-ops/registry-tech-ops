@@ -10,9 +10,9 @@ dsl_definitions:
 
 # App deploy
   run_install_cmds: &run_install_cmds
-    - sudo -E ./install_harbor.sh { get_input: run_arg }
+    - concat: ["sudo -E ./install_harbor.sh ", { get_input: run_arg }]
   run_uninstall_cmds: &run_uninstall_cmds
-    - sudo -E ./install_harbor.sh uninstall-harbor
+    - concat: ["sudo -E ./install_harbor.sh ", "uninstall-harbor"]
   shell_env: &shell_env
     DURATION_DAYS: { get_input: duration_days }
     COMMON_NAME: { get_input: common_name }

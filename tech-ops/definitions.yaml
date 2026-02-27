@@ -23,9 +23,9 @@ dsl_definitions:
     HARBOR_VERSION: { get_input: harbor_version }
     HARBOR_PORT: { get_input: harbor_port }
     HARBOR_USERNAME: { get_input: harbor_username }
-    HARBOR_PASSWORD: { get_input: harbor_password }
+    HARBOR_PASSWORD: { concat: ['"', { get_input: harbor_password }, '"'] }
     DOCKER_BRIDGE_CIDR: { get_input: docker_bridge_cidr }
-    PROJECTS: { get_input: projects }
+    PROJECTS: { concat: ['"', { get_input: projects }, '"'] }
     DEBUG: { get_input: debug }
 
   command_fabric_env: &command_fabric_env

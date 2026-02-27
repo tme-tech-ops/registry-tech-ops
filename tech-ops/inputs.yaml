@@ -212,8 +212,8 @@ inputs:
     default: "install-harbor"
     constraints:
       - valid_values:
-      - "install-harbor"
-      - "offline-prep"
+        - "install-harbor"
+        - "offline-prep"
     display:
       group: env_config
       index: 1  

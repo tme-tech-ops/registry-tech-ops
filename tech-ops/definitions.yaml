@@ -35,7 +35,6 @@ dsl_definitions:
     user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
     key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
     port: 22
-    hide_output: { get_input: hide_log_output }
 
 # Get target ID and VM info
   get_target_id: &get_target_id
@@ -55,7 +54,7 @@ dsl_definitions:
         key:
           get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
         port: 22
-        hide_output: { get_input: hide_log_output }
+      hide_output: { get_input: hide_log_output }
       proxy_settings:
         get_attribute: [ SELF, connection_proxy_settings ]
 
@@ -119,6 +118,7 @@ node_templates:
           executor: central_deployment_agent
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
+            hide_output: { get_input: hide_log_output }
             proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
             commands: *run_install_cmds
             fabric_env:
@@ -127,6 +127,7 @@ node_templates:
           executor: central_deployment_agent
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
+            hide_output: { get_input: hide_log_output }
             proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
             commands: *run_install_cmds
             fabric_env:
@@ -135,6 +136,7 @@ node_templates:
           executor: central_deployment_agent
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
+            hide_output: { get_input: hide_log_output }
             proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
             commands: *run_uninstall_cmds
             fabric_env:

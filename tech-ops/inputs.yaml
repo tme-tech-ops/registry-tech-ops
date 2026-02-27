@@ -259,13 +259,13 @@ inputs:
       index: 10
 
   hide_log_output:
-    type: string
+    type: list
     hidden: false
     allow_update: true
-    display_label: Log Output Settings
+    display_label: Log Output to hide
     description: |
-      Set to true to hide log output
-    default: "stdout"
+      stdout hides standard output, stderr hides standard error, both hides both
+    default: ["stdout"]
     constraints:
       - valid_values:
         - "both"

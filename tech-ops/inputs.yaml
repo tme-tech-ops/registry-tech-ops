@@ -211,8 +211,9 @@ inputs:
       Install from internet or create offline package
     default: "install-harbor"
     constraints:
-    - "install-harbor"
-    - "offline-prep"
+      - valid_values:
+      - "install-harbor"
+      - "offline-prep"
     display:
       group: env_config
       index: 1  
@@ -266,9 +267,10 @@ inputs:
       Set to true to hide log output
     default: "stdout"
     constraints:
-    - "both"
-    - "stdout"
-    - "stderr"
+      - valid_values:
+        - "both"
+        - "stdout"
+        - "stderr"
     display:
       group: env_config
       index: 15

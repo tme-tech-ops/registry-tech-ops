@@ -1,7 +1,6 @@
 #!/bin/bash
 
 OFFLINE_PACKAGE_NAME="harbor-offline-package.tar.gz"
-OFFLINE_PACKAGE_GENERATED="false"
 OFFLINE_PACKAGE_UPLOADED="false"
 OFFLINE_PACKAGE_URL="N/A"
 HARBOR_RUNNING="false"
@@ -23,19 +22,20 @@ else
   HARBOR_PASSWORD="N/A"
 fi
 
-if [[ -f "~/${OFFLINE_PACKAGE_NAME}" ]]; then
+if [[ -f ~/"${OFFLINE_PACKAGE_NAME}" ]]; then
   ctx logger info "Offline package found."
-  OFFLINE_PACKAGE_GENERATED="true"
   if [[ $UPLOAD_OFFLINE_PACKAGE == "true" ]]; then
     ctx logger info "Uploading offline package..."
+    new_offline_package_name="$(date +%Y%m%d%H%M)-${OFFLINE_PACKAGE_NAME}"
+    mv ~/"${OFFLINE_PACKAGE_NAME}" ~/"${new_offline_package_name}"
     if [[ -z $UPLOAD_BASE_URL || -z $UPLOAD_OFFLINE_PACKAGE_USER || -z $UPLOAD_OFFLINE_PACKAGE_PASSWORD ]]; then
       ctx logger info "UPLOAD_BASE_URL, UPLOAD_OFFLINE_PACKAGE_USER, or UPLOAD_OFFLINE_PACKAGE_PASSWORD is missing."
       exit 1
     else
-      OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}/${OFFLINE_PACKAGE_NAME}"
+      OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}/${new_offline_package_name}"
       curl -ku "${UPLOAD_OFFLINE_PACKAGE_USER}:${UPLOAD_OFFLINE_PACKAGE_PASSWORD}" \
         -X POST $OFFLINE_PACKAGE_URL \
-        -F "file=@~/${OFFLINE_PACKAGE_NAME}"
+        -F "file=@$HOME/${new_offline_package_name}"
       if [[ $? -ne 0 ]]; then
         ctx logger info "Failed to upload offline package."
         exit 1
@@ -50,8 +50,11 @@ else
 fi
 
 ctx logger info "Post install check completed."
-ctx instance runtime-properties capabilities.offline_package_generated "$OFFLINE_PACKAGE_GENERATED"
-ctx instance runtime-properties capabilities.offline_package_name "$OFFLINE_PACKAGE_NAME"
+if [[ $UPLOAD_OFFLINE_PACKAGE == "true" ]]; then
+  ctx instance runtime-properties capabilities.offline_package_name "$OFFLINE_PACKAGE_NAME"
+else
+  ctx instance runtime-properties capabilities.offline_package_name "$new_offline_package_name"
+fi
 ctx instance runtime-properties capabilities.offline_package_uploaded "$OFFLINE_PACKAGE_UPLOADED"
 ctx instance runtime-properties capabilities.offline_package_url "$OFFLINE_PACKAGE_URL"
 ctx instance runtime-properties capabilities.harbor_running "$HARBOR_RUNNING"

@@ -7,7 +7,8 @@ if [[ ${OFFLINE_MODE,,} == "true" ]]; then
         exit 1
     else
         ctx logger info "Downloading offline binary..."
-        curl -sfLu $OFFLINE_BINARY_USER:$OFFLINE_BINARY_PASSWORD $OFFLINE_BINARY_URL -o ~/$(basename $OFFLINE_BINARY_URL)
+        ctx logger info "curl -sfLu "$OFFLINE_BINARY_USER:$OFFLINE_BINARY_PASSWORD" $OFFLINE_BINARY_URL -o ~/$(basename $OFFLINE_BINARY_URL)"
+        curl -sfLu "$OFFLINE_BINARY_USER:$OFFLINE_BINARY_PASSWORD" $OFFLINE_BINARY_URL -o ~/$(basename $OFFLINE_BINARY_URL)
         if [[ $? -ne 0 ]]; then 
             ctx logger info "Failed to download offline binary."
             exit 1

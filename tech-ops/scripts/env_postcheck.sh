@@ -33,7 +33,7 @@ if [[ -f ~/"${OFFLINE_PACKAGE_NAME}" ]]; then
       ctx logger info "UPLOAD_BASE_URL, UPLOAD_OFFLINE_PACKAGE_USER, or UPLOAD_OFFLINE_PACKAGE_PASSWORD is missing."
       exit 1
     else
-      OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}/${new_offline_package_name}"
+      OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}${new_offline_package_name}"
       curl -ku "${UPLOAD_OFFLINE_PACKAGE_USER}:${UPLOAD_OFFLINE_PACKAGE_PASSWORD}" \
         -X POST $OFFLINE_PACKAGE_URL \
         -F "file=@$HOME/${new_offline_package_name}"

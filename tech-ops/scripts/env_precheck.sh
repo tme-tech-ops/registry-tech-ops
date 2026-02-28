@@ -14,7 +14,7 @@ if [[ ${OFFLINE_MODE,,} == "true" ]]; then
             exit 1
         fi
         ctx logger info "Extracting offline binary..."
-        tar -xzf $(basename $OFFLINE_BINARY_URL) -C ~/
+        tar -xzf ~/$(basename $OFFLINE_BINARY_URL) -C ~/
         if [[ $? -ne 0 ]]; then 
             ctx logger info "Failed to extract offline binary."
             exit 1

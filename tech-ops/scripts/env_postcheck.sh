@@ -24,7 +24,8 @@ fi
 
 if [[ -f ~/"${OFFLINE_PACKAGE_NAME}" ]]; then
   ctx logger info "Offline package found."
-  if [[ $UPLOAD_OFFLINE_PACKAGE == "true" ]]; then
+  ctx logger info "Upload package: $UPLOAD_OFFLINE_PACKAGE"
+  if [[ ${UPLOAD_OFFLINE_PACKAGE,,} == "true" ]]; then
     ctx logger info "Uploading offline package..."
     new_offline_package_name="$(date +%Y%m%d%H%M)-${OFFLINE_PACKAGE_NAME}"
     mv ~/"${OFFLINE_PACKAGE_NAME}" ~/"${new_offline_package_name}"
@@ -50,7 +51,7 @@ else
 fi
 
 ctx logger info "Post install check completed."
-if [[ $UPLOAD_OFFLINE_PACKAGE == "true" ]]; then
+if [[ ${UPLOAD_OFFLINE_PACKAGE,,} == "true" ]]; then
   ctx instance runtime-properties capabilities.offline_package_name "$OFFLINE_PACKAGE_NAME"
 else
   ctx instance runtime-properties capabilities.offline_package_name "$new_offline_package_name"
@@ -62,4 +63,3 @@ ctx instance runtime-properties capabilities.harbor_ip_url "$HARBOR_IP_URL"
 ctx instance runtime-properties capabilities.harbor_fqdn_url "$HARBOR_FQDN_URL"
 ctx instance runtime-properties capabilities.harbor_username "$HARBOR_USERNAME"
 ctx instance runtime-properties capabilities.harbor_password "$HARBOR_PASSWORD"
-

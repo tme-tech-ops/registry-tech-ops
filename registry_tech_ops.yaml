@@ -19,7 +19,7 @@ input_groups:
 
   registry_config:
     display_label: Registry Configuration
-    collapsible: false
+    collapsible: true
     index: 1
     inputs:
       - harbor_version
@@ -32,7 +32,7 @@ input_groups:
 
   env_config:
     display_label: Enironment Configuration
-    collapsible: false
+    collapsible: true
     index: 2
     inputs:
       - run_arg

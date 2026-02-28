@@ -8,7 +8,7 @@ if [[ ${OFFLINE_MODE,,} == "true" ]]; then
     else
         ctx logger info "Downloading offline binary..."
         ctx logger info "curl -sfLu "$OFFLINE_BINARY_USER:$OFFLINE_BINARY_PASSWORD" $OFFLINE_BINARY_URL -o ~/$(basename $OFFLINE_BINARY_URL)"
-        curl -sfLu "$OFFLINE_BINARY_USER:$OFFLINE_BINARY_PASSWORD" $OFFLINE_BINARY_URL -o ~/$(basename $OFFLINE_BINARY_URL)
+        curl -skfLu "${OFFLINE_BINARY_USER}:${OFFLINE_BINARY_PASSWORD}" "${OFFLINE_BINARY_URL}" -o ~/$(basename $OFFLINE_BINARY_URL)
         if [[ $? -ne 0 ]]; then 
             ctx logger info "Failed to download offline binary."
             exit 1
@@ -27,7 +27,7 @@ else
         ctx logger info "SCRIPT_URL is missing."
         exit 1
     fi
-    curl -sfL $SCRIPT_URL -o ~/$(basename $SCRIPT_URL)
+    curl -skfL $SCRIPT_URL -o ~/$(basename $SCRIPT_URL)
     if [[ $? -ne 0 ]]; then 
         ctx logger info "Failed to download script."
         exit 1

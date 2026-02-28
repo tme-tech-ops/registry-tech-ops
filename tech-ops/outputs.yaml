@@ -20,10 +20,6 @@ capabilities:
     description: Harbor URL via FQDN
     value: { get_attribute: [ env_postcheck, capabilities, harbor_fqdn_url ] }
 
-  offline_package_generated:
-    description: Whether offline package was generated
-    value: { get_attribute: [ env_postcheck, capabilities, offline_package_generated ] }
-
   offline_package_name:
     description: Name of the offline package
     value: { get_attribute: [ env_postcheck, capabilities, offline_package_name ] }

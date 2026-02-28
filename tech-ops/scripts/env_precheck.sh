@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ $OFFLINE_MODE == "true" ]]; then
+if [[ ${OFFLINE_MODE,,} == "true" ]]; then
     ctx logger info "Offline mode detected."
     if [[ -z $OFFLINE_BINARY_URL || -z $OFFLINE_BINARY_USER || -z $OFFLINE_BINARY_PASSWORD ]]; then
         ctx logger info "OFFLINE_BINARY_URL, OFFLINE_BINARY_USER, or OFFLINE_BINARY_PASSWORD is missing."

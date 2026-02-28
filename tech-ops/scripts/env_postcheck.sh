@@ -35,7 +35,7 @@ if [[ -f ~/"${OFFLINE_PACKAGE_NAME}" ]]; then
     else
       OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}/${new_offline_package_name}"
       curl -ku "${UPLOAD_OFFLINE_PACKAGE_USER}:${UPLOAD_OFFLINE_PACKAGE_PASSWORD}" \
-        -X POST $OFFLINE_PACKAGE_URL/${new_offline_package_name} \
+        -X POST $OFFLINE_PACKAGE_URL \
         -F "file=@$HOME/${new_offline_package_name}"
       if [[ $? -ne 0 ]]; then
         ctx logger info "Failed to upload offline package."

@@ -180,8 +180,8 @@ inputs:
     allow_update: false    
     display_label: Registry Projects
     description: |
-      Auto-created registry projects
-    default: ""
+      Auto-created registry projects (Defaults are all supported projects in the tme-tech-ops suite)
+    default: "chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent"
     display:
       group: harbor_settings
       index: 25

@@ -1,6 +1,9 @@
 # registry-tech-ops
 
-Blueprint for deploying Harbor OCI registry on an existing **edge-cloud-init** VM using the fabric-plugin.
+Blueprint for deploying Harbor OCI registry on an existing **edge-cloud-init** VM using the fabric-plugin.  
+  
+This blueprint is designed for **NativeEdge Endpoints** on **Dell Automation Platform**
+
 
 ## Prerequisites
 

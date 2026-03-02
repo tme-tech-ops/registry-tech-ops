@@ -15,7 +15,7 @@ dsl_definitions:
     - concat: ["sudo -E ./install_harbor.sh ", "uninstall-harbor"]
   shell_env: &shell_env
     DURATION_DAYS: { get_input: duration_days }
-    COMMON_NAME: { get_input: common_name }
+    REGISTRY_COMMON_NAME: { get_input: common_name }
     COUNTRY: { get_input: country }
     STATE: { get_input: state }
     LOCATION: { get_input: location }

@@ -1,33 +1,5 @@
 inputs:
 
-# Deployment Target Inputs
-  vm_deployment_id:
-    type: deployment_id
-    hidden: false
-    allow_update: false
-    display_label: POC VM Deployment Instance
-    description: |
-      POC VM Deployment Instance
-    constraints:
-    - labels:
-      - csys-obj-type: environment
-      - solution: edge-cloud-init
-    display:
-      group: deployment_target
-      index: 1
-
-  ssh_user_private_key:
-    type: secret_key
-    hidden: true
-    allow_update: false
-    required: false
-    display_label: SSH Private Key Secret from the edge-cloud-init deployment
-    description: |
-      Name of the SSH private key secret in the secret store for the VM user
-    display:
-      group: deployment_target
-      index: 5
-
 # Self-Signed Certificate Inputs
   duration_days:
     type: integer
@@ -302,6 +274,16 @@ inputs:
       index: 30
 
 # Hidden Inputs
+
+  ssh_user_private_key:
+    type: secret_key
+    hidden: true
+    allow_update: false
+    required: false
+    display_label: SSH Private Key Secret from the edge-cloud-init deployment
+    description: |
+      Name of the SSH private key secret in the secret store for the VM user
+
   offline_binary_url:
     type: string
     hidden: true

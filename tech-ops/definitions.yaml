@@ -49,8 +49,9 @@ dsl_definitions:
         port: 22
       hide_output: { get_input: hide_log_output }
       proxy_settings:
+        auto_resolve: false
+        target_id: { get_environment_capability: proxy_target_id }
         target_ip: { get_environment_capability: vm_name_id }
-        service_tag: { get_environment_capability: service_tag }
 
 node_templates:
 
@@ -85,8 +86,9 @@ node_templates:
               port: 22
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
     relationships:
        - type: dell.relationships.depends_on
          target: vm_info
@@ -101,8 +103,9 @@ node_templates:
           inputs:
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -112,8 +115,9 @@ node_templates:
           inputs:
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -123,8 +127,9 @@ node_templates:
           inputs:
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
             commands: *run_uninstall_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -157,8 +162,9 @@ node_templates:
               port: 22
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
     relationships:
        - type: dell.relationships.depends_on
          target: install_app

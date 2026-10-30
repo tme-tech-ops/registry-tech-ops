@@ -49,7 +49,7 @@ The target `edge-cloud-init` deployment must be labeled with:
 | Airgapped Mode | `offline_mode` | `false` | Set to `true` to download and install Harbor from an offline package instead of the internet |
 | Offline Binary Configuration Secret | `offline_binary_secret` | *(no default)* | Secret (type: `binary_configuration`) containing the URL, credentials, and version of the offline Harbor archive. Only shown when **Airgapped Mode** is enabled |
 | Install Task | `run_arg` | `install-harbor` | The install task to run. Valid values: `install-harbor` (standard install), `offline-prep` (download artifacts and create an offline package). Mutually exclusive with **Airgapped Mode** |
-| Script URL | `script_url` | `https://github.com/Chubtoad5/harbor-registry-installer/raw/refs/heads/main/install_harbor.sh` | URL of the installer script to download and execute. Mutually exclusive with **Airgapped Mode** |
+| Script URL | `script_url` | *(pinned installer commit)* | URL of the installer script to download and execute; the default is the installer commit this release was tested with. Mutually exclusive with **Airgapped Mode** |
 | Upload offline-prep package | `upload_package` | `false` | When using the `offline-prep` install task, set to `true` to upload the generated offline package to an HTTP server |
 | Upload URL location | `upload_binary_secret` | *(no default)* | Secret (type: `binary_configuration`) pointing to the upload target location. Only shown when **Upload offline-prep package** is enabled |
 | Log Output to hide | `hide_log_output` | `["stdout"]` | Controls which script output streams are suppressed in deployment logs. Valid values: `stdout`, `stderr`, `both` |
@@ -79,3 +79,25 @@ After a successful deployment the following capabilities are exposed:
 | `offline_package_name` | Name of the generated offline package (populated when `run_arg: offline-prep`) |
 | `offline_package_uploaded` | Whether the offline package was successfully uploaded |
 | `offline_package_url` | URL where the offline package was uploaded |
+
+## Updating a Deployment
+
+The registry is installed once, at install. Every input is locked and an
+update never re-runs the installer, so an update with no change, or a move to a
+new revision of this blueprint, leaves Harbor and its data as they are. Harbor
+upgrades, certificate renewal and adding projects are planned as update
+features.
+
+- **Uninstalling** an `install-harbor` deployment uninstalls Harbor and deletes
+  its data (images, projects, users, database). Uninstalling an `offline-prep`
+  deployment leaves the VM's Harbor, if any, alone.
+- **A reinstall or Heal** of `install_app` keeps Harbor and its data; the
+  installer finds Harbor running and leaves it.
+- To resize the VM under the registry, update its **edge-cloudinit-linux**
+  deployment with Force ticked (this deployment depends on it); Harbor comes back
+  after the VM restarts.
+- If the VM gets a new IP address (for example a segment change), `harbor_ip_url`
+  and the certificate still show the old address until an IP-change repair
+  feature exists; the FQDN URL keeps working if DNS follows the VM.
+
+See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.

@@ -1,10 +1,12 @@
 tosca_definitions_version: dell_1_1
 
 description: >
-  This blueprint Deploys a Harbor registry on an existing edge-cloud-init deployment
+  This blueprint installs a Harbor registry (or builds an offline Harbor package) on an existing
+  edge-cloudinit VM. Its settings are fixed at install; an update doesn't re-run the installer.
 
 imports:
   - dell/types/types.yaml
+  - plugin:fabric-plugin?version= >=3.4.2.0,<4.0.0.0
   - tech-ops/definitions.yaml
   - tech-ops/inputs.yaml
   - tech-ops/outputs.yaml
@@ -25,7 +27,7 @@ input_groups:
       - debug
 
   env_config:
-    display_label: Enironment Configuration
+    display_label: Environment Configuration
     collapsible: true
     index: 2
     inputs:
@@ -64,7 +66,7 @@ labels:
       - registry-tech-ops
   version:
     values:
-      - "4.1.0.0"
+      - "1.2.0.0"
 
 blueprint_labels:
   env:

@@ -5,13 +5,16 @@ inputs:
     type: integer
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Duration
     description: |
       Self-Signed Certificate Duration (in days)
     default: 365
+    constraints:
+      - in_range: [1, 36500]
+        error_message: Must be between 1 and 36500 days.
     display:
-      group: certificate
+      group: certificate_config
       index: 1
 
   common_name:
@@ -24,59 +27,59 @@ inputs:
       Self-Signed Certificate Common Name
     default: "registry.harbor.edge.lab"
     display:
-      group: certificate
+      group: certificate_config
       index: 5
 
   country:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Country
     description: |
       Self-Signed Certificate Country
     default: "US"
     display:
-      group: certificate
+      group: certificate_config
       index: 10
 
   state:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: State
     description: |
       Self-Signed Certificate State
     default: "MA"
     display:
-      group: certificate
+      group: certificate_config
       index: 15
 
   location:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Location
     description: |
       Self-Signed Certificate Location
     default: "Hopkinton"
     display:
-      group: certificate
+      group: certificate_config
       index: 20
 
   organization:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Organization
     description: |
       Self-Signed Certificate Organization
     default: "EdgeLab"
     display:
-      group: certificate
+      group: certificate_config
       index: 25
 
 # Harbor Inputs
@@ -90,7 +93,7 @@ inputs:
       Harbor release version
     default: "2.14.1"
     display:
-      group: harbor_settings
+      group: registry_config
       index: 1
 
   harbor_port:
@@ -102,8 +105,11 @@ inputs:
     description: |
       Harbor Port
     default: 443
+    constraints:
+      - in_range: [1, 65535]
+        error_message: Must be a port number (1-65535).
     display:
-      group: harbor_settings
+      group: registry_config
       index: 5
 
   harbor_username:
@@ -116,7 +122,7 @@ inputs:
       Harbor basic authentication username
     default: "admin"
     display:
-      group: harbor_settings
+      group: registry_config
       index: 10
 
   harbor_password:
@@ -129,7 +135,7 @@ inputs:
       Harbor basic authentication password
     default: "changeme"
     display:
-      group: harbor_settings
+      group: registry_config
       index: 15
 
   docker_bridge_cidr:
@@ -142,33 +148,36 @@ inputs:
       IP CIDR range for Docker (i.e. 172.17.0.1/16)
     default: "172.17.0.1/16"
     display:
-      group: harbor_settings
+      group: registry_config
       index: 20
 
   projects:
     type: string
     hidden: false
     required: false
-    allow_update: false    
+    allow_update: false
     display_label: Registry Projects
     description: |
       Auto-created registry projects (Defaults are all supported projects in the tme-tech-ops suite)
     default: "chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent"
     display:
-      group: harbor_settings
+      group: registry_config
       index: 25
 
   debug:
     type: integer
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Debug Logging
     description: |
       Set to 0 or 1 to enable or disable debug logging
     default: 1
+    constraints:
+      - valid_values: [0, 1]
+        error_message: Must be 0 or 1.
     display:
-      group: harbor_settings
+      group: registry_config
       index: 30
 
 # Env Config Inputs
@@ -176,7 +185,7 @@ inputs:
   offline_mode:
     type: boolean
     hidden: false
-    allow_update: true
+    allow_update: false
     display_label: Airgapped Mode
     description: |
       Set to true to download and install from specified offline package
@@ -189,13 +198,14 @@ inputs:
     type: secret_key
     hidden: false
     only_with: offline_mode
-    allow_update: true
+    allow_update: false
     display_label: Offline Binary Configuration Secret
     description: |
       Secret containing url, username, access_token, and 
       version of the offline archive binary.
     constraints:
     - type: binary_configuration
+      error_message: Select a secret of type binary_configuration.
     display:
       group: env_config
       index: 5
@@ -204,7 +214,7 @@ inputs:
     type: string
     hidden: false
     exclusive_with: offline_mode
-    allow_update: true
+    allow_update: false
     display_label: Install Task
     description: |
       Install from internet or create offline package
@@ -213,6 +223,7 @@ inputs:
       - valid_values:
         - "install-harbor"
         - "offline-prep"
+        error_message: Select one of the listed tasks.
     display:
       group: env_config
       index: 10
@@ -221,11 +232,15 @@ inputs:
     type: string
     hidden: false
     exclusive_with: offline_mode
-    allow_update: true
+    allow_update: false
     display_label: Script URL
-    description: |
-      URL of the script to be executed
-    default: "https://github.com/Chubtoad5/harbor-registry-installer/raw/refs/heads/main/install_harbor.sh"
+    description: >
+      URL of the Harbor installer script (install_harbor.sh). The default is the
+      installer commit this release was tested with.
+    default: "https://github.com/Chubtoad5/harbor-registry-installer/raw/1bd7b54b24106fd2b39468079e8ab08a7c968858/install_harbor.sh"
+    constraints:
+      - pattern: '^https?://\S+/install_harbor\.sh$'
+        error_message: Enter the URL of install_harbor.sh.
     display:
       group: env_config
       index: 15
@@ -233,7 +248,7 @@ inputs:
   upload_package:
     type: boolean
     hidden: false
-    allow_update: true
+    allow_update: false
     display_label: Upload offline-prep package
     description: |
       Only for offline-prep install task, uploads the offline package to http server
@@ -246,20 +261,22 @@ inputs:
     type: secret_key
     hidden: false
     only_with: upload_package
-    allow_update: true
+    allow_update: false
     display_label: Upload URL location
     description: |
       Binary configuration secret pointing to the upload location (i.e. https://myfilerserver.lab/upload_dir/).
     constraints:
     - type: binary_configuration
+      error_message: Select a secret of type binary_configuration.
     display:
       group: env_config
       index: 25
 
   hide_log_output:
     type: list
+    item_type: string
     hidden: false
-    allow_update: true
+    allow_update: false
     display_label: Log Output to hide
     description: |
       stdout hides standard output, stderr hides standard error, both hides both
@@ -269,20 +286,12 @@ inputs:
         - "both"
         - "stdout"
         - "stderr"
+        error_message: Must be both, stdout, or stderr.
     display:
       group: env_config
       index: 30
 
 # Hidden Inputs
-
-  ssh_user_private_key:
-    type: secret_key
-    hidden: true
-    allow_update: false
-    required: false
-    display_label: SSH Private Key Secret from the edge-cloud-init deployment
-    description: |
-      Name of the SSH private key secret in the secret store for the VM user
 
   offline_binary_url:
     type: string
@@ -299,6 +308,7 @@ inputs:
 
   offline_binary_access_user:
     type: string
+    allow_update: false
     hidden: true
     display_label: Offline Binary Username
     description: |
@@ -308,29 +318,6 @@ inputs:
       get_secret:
       - get_input: offline_binary_secret
       - binary_image_access_user
-
-  offline_binary_access_token:
-    type: list
-    hidden: true
-    display_label: Offline Binary Access Token
-    description: |
-      Name of the secret storing the Token to the Repository of the
-      Image Binary that will be used to create the Virtual Machine.
-    default:
-    - get_input: offline_binary_secret
-    - binary_image_access_token
-
-  offline_binary_version:
-    type: string
-    hidden: true
-    display_label: Offline Binary Version
-    description: |
-      Ofline binary version that will be used to create
-      the Virtual Machine.
-    default:
-      get_secret:
-      - get_input: offline_binary_secret
-      - binary_image_version
 
   upload_binary_url:
     type: string
@@ -347,6 +334,7 @@ inputs:
 
   upload_binary_access_user:
     type: string
+    allow_update: false
     hidden: true
     display_label: Upload Binary Username
     description: |
@@ -356,26 +344,3 @@ inputs:
       get_secret:
       - get_input: upload_binary_secret
       - binary_image_access_user
-
-  upload_binary_access_token:
-    type: list
-    hidden: true
-    display_label: Upload Binary Access Token
-    description: |
-      Name of the secret storing the Token to the Repository of the
-      Image Binary that will be used to create the Virtual Machine.
-    default:
-    - get_input: upload_binary_secret
-    - binary_image_access_token
-
-  upload_binary_version:
-    type: string
-    hidden: true
-    display_label: Upload Binary Version
-    description: |
-      Ofline binary version that will be used to create
-      the Virtual Machine.
-    default:
-      get_secret:
-      - get_input: upload_binary_secret
-      - binary_image_version

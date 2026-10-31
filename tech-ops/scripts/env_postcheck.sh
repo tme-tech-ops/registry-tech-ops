@@ -51,10 +51,11 @@ else
 fi
 
 ctx logger info "Post install check completed."
-if [[ ${UPLOAD_OFFLINE_PACKAGE,,} == "true" ]]; then
-  ctx instance runtime-properties capabilities.offline_package_name "$OFFLINE_PACKAGE_NAME"
-else
+# An uploaded package was renamed with a timestamp before the upload.
+if [[ ${OFFLINE_PACKAGE_UPLOADED} == "true" ]]; then
   ctx instance runtime-properties capabilities.offline_package_name "$new_offline_package_name"
+else
+  ctx instance runtime-properties capabilities.offline_package_name "$OFFLINE_PACKAGE_NAME"
 fi
 ctx instance runtime-properties capabilities.offline_package_uploaded "$OFFLINE_PACKAGE_UPLOADED"
 ctx instance runtime-properties capabilities.offline_package_url "$OFFLINE_PACKAGE_URL"

@@ -3,7 +3,7 @@
 All notable changes to this blueprint are recorded here. The version is also
 the catalog revision to upload the blueprint as.
 
-## 1.2.0.0 - unreleased
+## 1.2.0.0 - 2026-10-31
 
 Safe deployment updates (Day-2). Works on a VM from edge-cloudinit-linux
 1.0.0 or 1.2.0.0.
@@ -36,6 +36,16 @@ Safe deployment updates (Day-2). Works on a VM from edge-cloudinit-linux
   validated; the version label is corrected (was 4.1.0.0). Lint: the remaining
   findings are the plain-text `harbor_password` input, left for the
   credentials change (secret inputs) that follows this release.
+
+## 1.1.5.0
+
+Release restructure and pinning supported plugins for DAP 2.0.0.1 / DDPC 4.2.0.0 -
+untested (2026-11-01).
+
+- This branch, `ddpc-4.2.0.0-snapshot`: the 1.2.0.0 code for DAP 2.0.0.1 with
+  DDPC 4.2.0.0. Version label 1.1.5.0. Not tested on that platform.
+- Imports only the fabric-plugin, unchanged (no pin needed).
+- DAP 2.0.0.1 doesn't ship the fabric-plugin: upload it before this blueprint.
 
 ## 1.0.0
 

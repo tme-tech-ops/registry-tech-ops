@@ -5,6 +5,16 @@ Blueprint for deploying Harbor OCI registry on an existing **edge-cloud-init** V
 This blueprint is designed for **NativeEdge Endpoints** on **Dell Automation Platform**
 
 
+## Releases
+
+| Release | DAP | DDPC | Version | Tested |
+|---|---|---|---|---|
+| [`1.2.0.0`](https://github.com/tme-tech-ops/registry-tech-ops/releases/tag/1.2.0.0) | 2.1.1.0 | 4.3.0.0 | 1.2.0.0 | yes |
+| [`1.1.5.0`](https://github.com/tme-tech-ops/registry-tech-ops/releases/tag/1.1.5.0) | 2.0.0.1 | 4.2.0.0 | 1.1.5.0 (branch `ddpc-4.2.0.0-snapshot`) | no |
+
+Download the zip attached to the release that matches your DAP and DDPC versions (not
+"Source code"); its notes give the blueprint name, revision and upload order.
+
 ## Prerequisites
 
 This blueprint **must be deployed on top of an existing `edge-cloud-init` deployment** from the tme-tech-ops suite. The `edge-cloud-init` deployment provides the target VM and exposes the SSH connection details (hostname, user, and private key) that this blueprint consumes via shared resource capabilities.

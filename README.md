@@ -57,7 +57,7 @@ proxy target come from that deployment's capabilities; there is no input for the
 | Harbor Version | `harbor_version` | `2.15.0` | Harbor release version to install, such as `2.15.0` (no leading `v`) |
 | Harbor Port | `harbor_port` | `443` | HTTPS port Harbor will listen on |
 | Harbor Username | `harbor_username` | `admin` | Harbor administrator. `admin` is Harbor's built-in account. Another name becomes a second system administrator with the same password (Harbor can't rename `admin`), and needs a password of at least 8 characters with a lowercase letter, an uppercase letter and a digit |
-| Harbor Password | `harbor_password` | `changeme` | Harbor administrator password: any characters except a single quote (`'`) and control characters |
+| Harbor Password | `harbor_password` | `changeme` | Harbor administrator password. Harbor hands it to its containers in an env file, which expands `$` and treats a space followed by `#` as a comment, so these are refused: single quotes (`'`), dollar signs (`$`), a `#` after a space, a space or `"` at the start, a space at the end, and control characters |
 | Docker CIDR | `docker_bridge_cidr` | `172.17.0.1/16` | IP CIDR range for the Docker bridge network |
 | Registry Projects | `projects` | `chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent` | Space-separated Harbor project names to create on install (lowercase letters, digits, `.`, `_`, `-`). Defaults to all projects used by the tme-tech-ops suite; empty creates none |
 | Debug Logging | `debug` | `1` | Set to `1` to enable or `0` to disable debug logging |

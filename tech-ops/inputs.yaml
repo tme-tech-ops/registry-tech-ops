@@ -157,12 +157,15 @@ inputs:
     allow_update: false
     display_label: Harbor Password
     description: |
-      Harbor administrator password. Any character except a single quote (') and
-      control characters.
+      Harbor administrator password. Harbor hands it to its containers in an env
+      file, which expands $ and treats a space followed by # as a comment, so
+      these are refused: single quotes ('), dollar signs ($), a # after a space,
+      a space or double quote (") at the start, a space at the end, and control
+      characters.
     default: "changeme"
     constraints:
-      - pattern: '^[^''\x00-\x1f\x7f]+$'
-        error_message: Use any characters except a single quote (') and control characters.
+      - pattern: '^(?!["\s])(?!.*\s#)(?!.*\s$)[^''$\x00-\x1f\x7f]+$'
+        error_message: Not allowed - single quotes ('), dollar signs ($), a # after a space, a leading space or double quote, a trailing space, control characters.
     display:
       group: registry_config
       index: 15

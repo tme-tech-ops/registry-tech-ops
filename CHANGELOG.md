@@ -19,6 +19,11 @@ Updating a 1.2.0.0 deployment to it changes nothing on the VM.
   broke the command. They are now single-quoted, and the inputs refuse a single
   quote. Host name, country, subject fields, user name, Docker CIDR and projects
   are validated.
+- Fixed: a Harbor password with `$` or a `#` after a space installed, but
+  Harbor's own env file expanded the `$` and cut the password at the ` #`, so
+  `admin` got a different password and the install failed with HTTP 401. The
+  form now refuses those, along with a leading space or `"` and a trailing
+  space.
 - Fixed: `env_postcheck` checked `/api/v2.0/projects` with the credentials,
   which Harbor answers with 200 for wrong credentials too, so a wrong password
   was reported as working and published. It now checks `/api/v2.0/health`, with

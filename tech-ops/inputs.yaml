@@ -26,6 +26,9 @@ inputs:
     description: |
       Self-Signed Certificate Common Name
     default: "registry.harbor.edge.lab"
+    constraints:
+      - pattern: '^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$'
+        error_message: Enter a host name (letters, digits, dots and hyphens), up to 253 characters.
     display:
       group: certificate_config
       index: 5
@@ -39,6 +42,9 @@ inputs:
     description: |
       Self-Signed Certificate Country
     default: "US"
+    constraints:
+      - pattern: '^[A-Za-z]{2}$'
+        error_message: Enter a two-letter country code, such as US.
     display:
       group: certificate_config
       index: 10
@@ -52,6 +58,9 @@ inputs:
     description: |
       Self-Signed Certificate State
     default: "MA"
+    constraints:
+      - pattern: '^[A-Za-z0-9][A-Za-z0-9 .,&()_-]{0,63}$'
+        error_message: Use letters, digits, spaces and . , - _ & ( ), up to 64 characters.
     display:
       group: certificate_config
       index: 15
@@ -65,6 +74,9 @@ inputs:
     description: |
       Self-Signed Certificate Location
     default: "Hopkinton"
+    constraints:
+      - pattern: '^[A-Za-z0-9][A-Za-z0-9 .,&()_-]{0,63}$'
+        error_message: Use letters, digits, spaces and . , - _ & ( ), up to 64 characters.
     display:
       group: certificate_config
       index: 20
@@ -78,6 +90,9 @@ inputs:
     description: |
       Self-Signed Certificate Organization
     default: "EdgeLab"
+    constraints:
+      - pattern: '^[A-Za-z0-9][A-Za-z0-9 .,&()_-]{0,63}$'
+        error_message: Use letters, digits, spaces and . , - _ & ( ), up to 64 characters.
     display:
       group: certificate_config
       index: 25
@@ -90,8 +105,11 @@ inputs:
     allow_update: false
     display_label: Harbor Version
     description: |
-      Harbor release version
-    default: "2.14.1"
+      Harbor release version, for example 2.15.0 (no leading v).
+    default: "2.15.0"
+    constraints:
+      - pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+        error_message: Enter a version such as 2.15.0, with no leading v.
     display:
       group: registry_config
       index: 1
@@ -117,10 +135,17 @@ inputs:
     hidden: false
     required: true
     allow_update: false
-    display_label: Harbor username
+    display_label: Harbor Username
     description: |
-      Harbor basic authentication username
+      Harbor administrator user name. admin is Harbor's built-in administrator.
+      Another name becomes a second system administrator with the same password
+      (Harbor can't rename admin), and then the password needs at least 8
+      characters with a lowercase letter, an uppercase letter and a digit, or the
+      install stops before changing anything.
     default: "admin"
+    constraints:
+      - pattern: '^[A-Za-z0-9._-]{1,255}$'
+        error_message: Use letters, digits, dots, underscores and hyphens.
     display:
       group: registry_config
       index: 10
@@ -132,8 +157,12 @@ inputs:
     allow_update: false
     display_label: Harbor Password
     description: |
-      Harbor basic authentication password
+      Harbor administrator password. Any character except a single quote (') and
+      control characters.
     default: "changeme"
+    constraints:
+      - pattern: '^[^''\x00-\x1f\x7f]+$'
+        error_message: Use any characters except a single quote (') and control characters.
     display:
       group: registry_config
       index: 15
@@ -147,6 +176,9 @@ inputs:
     description: |
       IP CIDR range for Docker (i.e. 172.17.0.1/16)
     default: "172.17.0.1/16"
+    constraints:
+      - pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$'
+        error_message: Enter an address and prefix length, such as 172.17.0.1/16.
     display:
       group: registry_config
       index: 20
@@ -158,8 +190,13 @@ inputs:
     allow_update: false
     display_label: Registry Projects
     description: |
-      Auto-created registry projects (Defaults are all supported projects in the tme-tech-ops suite)
+      Registry projects to create, separated by spaces (lowercase letters, digits,
+      dots, underscores and hyphens). The default is every project the tme-tech-ops
+      suite uses. Leave empty to create none.
     default: "chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent"
+    constraints:
+      - pattern: '^$|^[a-z0-9][a-z0-9._-]*( [a-z0-9][a-z0-9._-]*)*$'
+        error_message: Enter Harbor project names (lowercase letters, digits, dots, underscores and hyphens), separated by single spaces.
     display:
       group: registry_config
       index: 25
@@ -236,11 +273,12 @@ inputs:
     display_label: Script URL
     description: >
       URL of the Harbor installer script (install_harbor.sh). The default is the
-      installer commit this release was tested with.
-    default: "https://github.com/Chubtoad5/harbor-registry-installer/raw/1bd7b54b24106fd2b39468079e8ab08a7c968858/install_harbor.sh"
+      installer release this blueprint was tested with. A GitHub release asset is
+      checked against that release's SHA256SUMS before it runs.
+    default: "https://github.com/Chubtoad5/harbor-registry-installer/releases/download/v1.1.1/install_harbor.sh"
     constraints:
-      - pattern: '^https?://\S+/install_harbor\.sh$'
-        error_message: Enter the URL of install_harbor.sh.
+      - pattern: '^https?://[^\s'']+/install_harbor\.sh$'
+        error_message: Enter the URL of install_harbor.sh (no spaces or single quotes).
     display:
       group: env_config
       index: 15

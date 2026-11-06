@@ -9,7 +9,10 @@ set -u
 #
 # Other workflows run stop too: a reinstall during an update ("Run automatic
 # reinstall" or a reinstall list) and Heal. In those Harbor stays as it is, and
-# the create that follows re-runs the installer, which finds Harbor running.
+# the create that follows re-runs install-harbor. The installer this blueprint
+# pins (v1.1.0 or later) then changes nothing when nothing changed. A deployment
+# installed from 1.2.0.0 keeps its older installer copy, which redeploys Harbor
+# and replaces the server key.
 
 workflow="$(ctx workflow-id 2>/dev/null || echo unknown)"
 

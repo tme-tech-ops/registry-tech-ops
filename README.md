@@ -15,6 +15,17 @@ This blueprint is designed for **NativeEdge Endpoints** on **Dell Automation Pla
 Download the zip attached to the release that matches your DAP and DDPC versions (not
 "Source code"); its notes give the blueprint name, revision and upload order.
 
+### Harbor installer
+
+Each version runs a fixed release of
+[harbor-registry-installer](https://github.com/Chubtoad5/harbor-registry-installer), the
+default of **Script URL**:
+
+| Blueprint | Installer |
+|---|---|
+| 1.2.1.0 | [`v1.1.1`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.1.1), checked against the release's `SHA256SUMS` |
+| 1.2.0.0 | commit `1bd7b54`, since tagged [`v1.0.0`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.0.0) |
+
 ## Prerequisites
 
 This blueprint **must be deployed on top of an existing `edge-cloud-init` deployment** from the tme-tech-ops suite. The `edge-cloud-init` deployment provides the target VM and exposes the SSH connection details (hostname, user, and private key) that this blueprint consumes via shared resource capabilities.
@@ -36,20 +47,19 @@ The target `edge-cloud-init` deployment must be labeled with:
 
 ### Deployment Target
 
-| Display Name | Input Key | Default | Description |
-|---|---|---|---|
-| POC VM Deployment Instance | `vm_deployment_id` | *(required, no default)* | The deployment ID of the existing `edge-cloud-init` deployment to deploy Harbor on top of |
+Choose the `edge-cloud-init` deployment in **Deploy On**. The VM's name, user, SSH key and
+proxy target come from that deployment's capabilities; there is no input for them.
 
 ### Registry Configuration
 
 | Display Name | Input Key | Default | Description |
 |---|---|---|---|
-| Harbor Version | `harbor_version` | `2.14.1` | Harbor release version to install |
+| Harbor Version | `harbor_version` | `2.15.0` | Harbor release version to install, such as `2.15.0` (no leading `v`) |
 | Harbor Port | `harbor_port` | `443` | HTTPS port Harbor will listen on |
-| Harbor username | `harbor_username` | `admin` | Harbor basic authentication username |
-| Harbor Password | `harbor_password` | `changeme` | Harbor basic authentication password |
+| Harbor Username | `harbor_username` | `admin` | Harbor administrator. `admin` is Harbor's built-in account. Another name becomes a second system administrator with the same password (Harbor can't rename `admin`), and needs a password of at least 8 characters with a lowercase letter, an uppercase letter and a digit |
+| Harbor Password | `harbor_password` | `changeme` | Harbor administrator password. Harbor hands it to its containers in an env file, which expands `$` and treats a space followed by `#` as a comment, so these are refused: single quotes (`'`), dollar signs (`$`), a `#` after a space, a space or `"` at the start, a space at the end, and control characters |
 | Docker CIDR | `docker_bridge_cidr` | `172.17.0.1/16` | IP CIDR range for the Docker bridge network |
-| Registry Projects | `projects` | `chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent` | Space-separated list of registry projects to auto-create on install. Defaults to all projects used by the tme-tech-ops suite |
+| Registry Projects | `projects` | `chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent` | Space-separated Harbor project names to create on install (lowercase letters, digits, `.`, `_`, `-`). Defaults to all projects used by the tme-tech-ops suite; empty creates none |
 | Debug Logging | `debug` | `1` | Set to `1` to enable or `0` to disable debug logging |
 
 ### Environment Configuration
@@ -59,7 +69,7 @@ The target `edge-cloud-init` deployment must be labeled with:
 | Airgapped Mode | `offline_mode` | `false` | Set to `true` to download and install Harbor from an offline package instead of the internet |
 | Offline Binary Configuration Secret | `offline_binary_secret` | *(no default)* | Secret (type: `binary_configuration`) containing the URL, credentials, and version of the offline Harbor archive. Only shown when **Airgapped Mode** is enabled |
 | Install Task | `run_arg` | `install-harbor` | The install task to run. Valid values: `install-harbor` (standard install), `offline-prep` (download artifacts and create an offline package). Mutually exclusive with **Airgapped Mode** |
-| Script URL | `script_url` | *(pinned installer commit)* | URL of the installer script to download and execute; the default is the installer commit this release was tested with. Mutually exclusive with **Airgapped Mode** |
+| Script URL | `script_url` | *(pinned installer release)* | URL of the installer script to download and execute; the default is the installer release this version was tested with (see "Harbor installer"). A GitHub release asset is checked against that release's `SHA256SUMS`, and the install stops on a mismatch. Mutually exclusive with **Airgapped Mode** |
 | Upload offline-prep package | `upload_package` | `false` | When using the `offline-prep` install task, set to `true` to upload the generated offline package to an HTTP server |
 | Upload URL location | `upload_binary_secret` | *(no default)* | Secret (type: `binary_configuration`) pointing to the upload target location. Only shown when **Upload offline-prep package** is enabled |
 | Log Output to hide | `hide_log_output` | `["stdout"]` | Controls which script output streams are suppressed in deployment logs. Valid values: `stdout`, `stderr`, `both` |
@@ -81,11 +91,11 @@ After a successful deployment the following capabilities are exposed:
 
 | Capability | Description |
 |---|---|
-| `harbor_running` | Boolean indicating whether the Harbor service is reachable post-install |
+| `harbor_running` | Whether Harbor answers its health check (`/api/v2.0/health`) after the install |
 | `harbor_ip_url` | Harbor UI URL via management IP (e.g. `https://192.168.1.10:443`) |
 | `harbor_fqdn_url` | Harbor UI URL via the configured Common Name FQDN (e.g. `https://registry.harbor.edge.lab:443`) |
-| `harbor_username` | The Harbor admin username |
-| `harbor_password` | The Harbor admin password |
+| `harbor_username` | The Harbor administrator, if Harbor accepted its credentials (otherwise `N/A`) |
+| `harbor_password` | The Harbor administrator's password, if Harbor accepted it (otherwise `N/A`) |
 | `offline_package_name` | Name of the generated offline package (populated when `run_arg: offline-prep`) |
 | `offline_package_uploaded` | Whether the offline package was successfully uploaded |
 | `offline_package_url` | URL where the offline package was uploaded |
@@ -101,8 +111,15 @@ features.
 - **Uninstalling** an `install-harbor` deployment uninstalls Harbor and deletes
   its data (images, projects, users, database). Uninstalling an `offline-prep`
   deployment leaves the VM's Harbor, if any, alone.
-- **A reinstall or Heal** of `install_app` keeps Harbor and its data; the
-  installer finds Harbor running and leaves it.
+- **A reinstall or Heal** of `install_app` keeps Harbor and its data, and re-runs
+  the installer with the deployment's settings. On a deployment installed from
+  1.2.1.0, an unchanged re-run changes nothing ("No change: Harbor is running as
+  requested"). A deployment installed from 1.2.0.0 keeps that version's
+  installer on the VM, which redeploys Harbor and replaces its server
+  certificate and key, with a short outage; clients that trust the CA keep
+  working.
+- **Updating a 1.2.0.0 deployment to 1.2.1.0** changes nothing on the VM: the
+  installer copy it already has stays in place.
 - To resize the VM under the registry, update its **edge-cloudinit-linux**
   deployment with Force ticked (this deployment depends on it); Harbor comes back
   after the VM restarts.

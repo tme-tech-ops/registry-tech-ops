@@ -1,16 +1,29 @@
 #!/bin/sh
-# create for env_postcheck: reports whether Harbor answers and whether the
-# deployment's credentials work, then uploads an offline-prep package if asked.
+# create and update for env_postcheck: reports whether Harbor answers and whether
+# the deployment's credentials work, publishes Harbor's CA, and on create
+# uploads an offline-prep package if asked. An update runs it after
+# install_app's, to refresh the capabilities, and uploads nothing.
 #
 # The health check needs no credentials. The credentials are then checked on
 # /api/v2.0/users/current, because Harbor treats bad credentials as anonymous
 # on read calls such as /projects, which then still return 200. Only
 # credentials Harbor accepted are published as capabilities.
+#
+# The capabilities are written as one runtime property, because DAP doesn't
+# keep nested writes made in update operations.
 set -u
+# The fabric plugin leaves the settings in an env file on the VM. It holds passwords.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
 
 log() { ctx logger info "$1"; }
 warn() { ctx logger warning "$1"; }
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+# json_str <value>: a JSON string. \ and " are escaped, and lines are joined with \n
+# (the inputs refuse other control characters).
+json_str() {
+    printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | awk 'NR > 1 { printf "\\n" } { printf "%s", $0 }')"
+}
+op=$(ctx operation name 2>/dev/null); op=${op##*.}
 
 OFFLINE_PACKAGE_NAME="harbor-offline-package.tar.gz"
 offline_package_uploaded="false"
@@ -21,6 +34,7 @@ harbor_ip_url="N/A"
 harbor_fqdn_url="N/A"
 cap_username="N/A"
 cap_password="N/A"
+cap_ca_cert="N/A"
 
 mgmt_ip=$(hostname -I | awk '{ print $1 }')
 base_url="https://${mgmt_ip}:${HARBOR_PORT}"
@@ -78,11 +92,27 @@ if [ "$health_code" = "200" ]; then
             warn "Harbor is running, but checking the credentials returned HTTP ${auth_code}. They aren't published."
             ;;
     esac
+    # The CA, for clients that have to trust the registry. No credentials needed.
+    ca=$(curl -sk --max-time 10 "${base_url}/api/v2.0/systeminfo/getcert" 2>/dev/null) || ca=""
+    case "$ca" in
+        -----BEGIN\ CERTIFICATE-----*) cap_ca_cert="$ca" ;;
+        *) warn "Harbor didn't return its CA certificate, so harbor_ca_cert isn't published." ;;
+    esac
 else
     log "Harbor is not running (health check: HTTP ${health_code})."
 fi
 
-if [ -f "$HOME/${OFFLINE_PACKAGE_NAME}" ]; then
+if [ "$op" = "update" ]; then
+    # An update uploads nothing: keep what the install published.
+    for key in offline_package_name offline_package_uploaded offline_package_url; do
+        value=$(ctx instance runtime-properties "capabilities.${key}" 2>/dev/null) || value=""
+        case "$key" in
+            offline_package_name) OFFLINE_PACKAGE_NAME=${value:-N/A}; new_offline_package_name=$OFFLINE_PACKAGE_NAME ;;
+            offline_package_uploaded) offline_package_uploaded=${value:-false} ;;
+            offline_package_url) offline_package_url=${value:-N/A} ;;
+        esac
+    done
+elif [ -f "$HOME/${OFFLINE_PACKAGE_NAME}" ]; then
     log "Offline package found."
     log "Upload package: ${UPLOAD_OFFLINE_PACKAGE}"
     if [ "$(lower "${UPLOAD_OFFLINE_PACKAGE}")" = "true" ]; then
@@ -111,14 +141,17 @@ fi
 log "Post install check completed."
 # An uploaded package was renamed with a timestamp before the upload.
 if [ "$offline_package_uploaded" = "true" ]; then
-    ctx instance runtime-properties capabilities.offline_package_name "$new_offline_package_name"
+    package_name="$new_offline_package_name"
 else
-    ctx instance runtime-properties capabilities.offline_package_name "$OFFLINE_PACKAGE_NAME"
+    package_name="$OFFLINE_PACKAGE_NAME"
 fi
-ctx instance runtime-properties capabilities.offline_package_uploaded "$offline_package_uploaded"
-ctx instance runtime-properties capabilities.offline_package_url "$offline_package_url"
-ctx instance runtime-properties capabilities.harbor_running "$harbor_running"
-ctx instance runtime-properties capabilities.harbor_ip_url "$harbor_ip_url"
-ctx instance runtime-properties capabilities.harbor_fqdn_url "$harbor_fqdn_url"
-ctx instance runtime-properties capabilities.harbor_username "$cap_username"
-ctx instance runtime-properties capabilities.harbor_password "$cap_password"
+caps="{\"offline_package_name\": $(json_str "$package_name"),"
+caps="$caps \"offline_package_uploaded\": $(json_str "$offline_package_uploaded"),"
+caps="$caps \"offline_package_url\": $(json_str "$offline_package_url"),"
+caps="$caps \"harbor_running\": $(json_str "$harbor_running"),"
+caps="$caps \"harbor_ip_url\": $(json_str "$harbor_ip_url"),"
+caps="$caps \"harbor_fqdn_url\": $(json_str "$harbor_fqdn_url"),"
+caps="$caps \"harbor_username\": $(json_str "$cap_username"),"
+caps="$caps \"harbor_password\": $(json_str "$cap_password"),"
+caps="$caps \"harbor_ca_cert\": $(json_str "$cap_ca_cert")}"
+ctx instance runtime-properties capabilities "@${caps}"

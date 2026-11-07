@@ -20,6 +20,10 @@ capabilities:
     description: Harbor URL via FQDN
     value: { get_attribute: [ env_postcheck, capabilities, harbor_fqdn_url ] }
 
+  harbor_ca_cert:
+    description: Harbor's CA certificate (PEM), for clients that trust the registry. Changes when the CA is rotated
+    value: { get_attribute: [ env_postcheck, capabilities, harbor_ca_cert ] }
+
   offline_package_name:
     description: Name of the offline package
     value: { get_attribute: [ env_postcheck, capabilities, offline_package_name ] }

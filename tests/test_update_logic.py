@@ -128,6 +128,18 @@ class InstallDriftTests(unittest.TestCase):
         self.assertNotIn("certificate", self.drift(rec=rec))
         self.assertIn("certificate", self.drift(want=inputs(ca_rotations=1), rec=rec))
 
+    def test_old_installer_never_drifts(self):
+        rec = facts(installer_version="", installer_url="https://raw.example/1bd7b54/install_harbor.sh")
+        old = inputs(script_url=rec["installer_url"])
+        self.assertEqual(L["install_drift"](inputs(script_url=rec["installer_url"], harbor_version="2.15.0"),
+                                            old, rec, NOW), {})
+
+    def test_old_installer_moving_drifts(self):
+        rec = facts(installer_version="", installer_url="https://raw.example/1bd7b54/install_harbor.sh")
+        found = L["install_drift"](inputs(harbor_version="2.15.0"), inputs(script_url=rec["installer_url"]), rec, NOW)
+        self.assertIn("installer", found)
+        self.assertIn("harbor_version", found)
+
     def test_new_installer(self):
         url = "https://github.com/Chubtoad5/harbor-registry-installer/releases/download/v1.2.0/install_harbor.sh"
         self.assertIn("installer", self.drift(want=inputs(script_url=url)))

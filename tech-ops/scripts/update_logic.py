@@ -114,7 +114,17 @@ def installer_too_old(facts):
 
 
 def install_drift(want, old, facts, now):
-    """{item: why} for what install_app's update has to do. Empty: nothing."""
+    """{item: why} for what install_app's update has to do. Empty: nothing.
+    An update doesn't run an installer older than v1.1.1 (update_checks
+    refuses the work), so then only a new Script URL is drift."""
+    found = requested(want, old, facts, now)
+    if installer_too_old(facts) and "installer" not in found:
+        return {}
+    return found
+
+
+def requested(want, old, facts, now):
+    """{item: why} for everything this update asks of Harbor."""
     if offline_prep(old):
         return {}
     if not facts:
@@ -202,7 +212,7 @@ def refusals(want, old, facts, now):
                        f"later, such as its default {DEFAULT_SCRIPT_URL}")
     elif installer_too_old(facts):
         moving = url and url != facts.get("installer_url")
-        work = {k: v for k, v in install_drift(want, old, facts, now).items() if k != "installer"}
+        work = {k: v for k, v in requested(want, old, facts, now).items() if k != "installer"}
         if work and not moving:
             reasons.append("This deployment's Harbor installer is older than v1.1.1, and an update doesn't "
                            f"run it ({', '.join(sorted(work))}). Set Script URL to {DEFAULT_SCRIPT_URL} "

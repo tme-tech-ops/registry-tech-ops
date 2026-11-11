@@ -152,6 +152,11 @@ project deleted in its UI, aren't seen. A reinstall of `install_app` and
   state, and the installer reports "No change". They keep installer `v1.1.1`
   until Script URL changes. Moving it to this version's default changes nothing
   on the VM, and is needed before a Harbor Version upgrade.
+- **A Duration over 730** (1.2.x allowed up to 36500): DAP refuses the update to
+  1.3.0.0 until it sends a Duration of 730 or less with it. The certificate the
+  deployment has is kept, and Apple devices reject one valid for more than 825
+  days. With installer `v1.3.0`, raise Certificate Renewals by one to issue a
+  certificate for the new Duration under the same CA.
 - **Deployments from 1.2.0.0** still have installer `1bd7b54` on the VM. Their
   first update only records the state. Other changes are refused until Script
   URL is set to this version's default. That update redeploys Harbor once (a

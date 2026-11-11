@@ -38,6 +38,8 @@ other setting stays fixed at install.
 - Changed: `duration_days` takes 31 to 730 days, where it took 1 to 36500.
   Installer `v1.3.0` issues server certificates for 730 days at most, because
   Apple devices reject longer ones and Harbor's web UI then fails in Safari.
+  DAP refuses the update to 1.3.0.0 of a deployment with a Duration over 730
+  unless the update sends a new one (tested).
 - Fixed: a Harbor password starting with `@` failed when it was published as a
   capability, because the ctx proxy read it as JSON. The capabilities are now
   written as one JSON value.

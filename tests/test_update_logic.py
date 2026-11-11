@@ -41,7 +41,7 @@ def inputs(**kwargs):
 
 
 def facts(**kwargs):
-    values = {"harbor_version": "2.14.1", "installer_version": "1.1.1",
+    values = {"harbor_version": "2.14.1", "installer_version": "1.3.0",
               "installer_url": L["DEFAULT_SCRIPT_URL"], "cert_not_after": iso(300),
               "ca_not_after": iso(3000), "projects": ["library", "rancher"], "projects_read": True,
               "ca_rotations": 0, "cert_renewals": 0}
@@ -57,7 +57,7 @@ class HelperTests(unittest.TestCase):
         self.assertIsNone(L["version"](None))
 
     def test_installer_release(self):
-        self.assertEqual(L["installer_release"](L["DEFAULT_SCRIPT_URL"]), (1, 1, 1))
+        self.assertEqual(L["installer_release"](L["DEFAULT_SCRIPT_URL"]), (1, 3, 0))
         self.assertIsNone(L["installer_release"]("https://example.com/x/install_harbor.sh"))
 
     def test_desired_state_overlays_sent_inputs(self):
@@ -216,6 +216,42 @@ class RefusalTests(unittest.TestCase):
         old = inputs(script_url=rec["installer_url"])
         self.assertEqual(self.refused(want=inputs(harbor_version="2.15.0"), old=old, rec=rec), [])
 
+    V111 = "https://github.com/Chubtoad5/harbor-registry-installer/releases/download/v1.1.1/install_harbor.sh"
+
+    def test_upgrade_needs_installer_that_dumps(self):
+        # A 1.2.1.0 deployment keeps its Script URL (v1.1.1), which makes no dump (Q41).
+        rec = facts(installer_version="1.1.1", installer_url=self.V111)
+        old = inputs(script_url=self.V111)
+        reasons = self.refused(want=inputs(script_url=self.V111, harbor_version="2.15.0"), old=old, rec=rec)
+        self.assertEqual(len(reasons), 1)
+        self.assertIn("v1.2.0 or later", reasons[0])
+        self.assertIn(L["DEFAULT_SCRIPT_URL"], reasons[0])
+
+    def test_upgrade_with_script_url_moved_in_same_update(self):
+        rec = facts(installer_version="1.1.1", installer_url=self.V111)
+        old = inputs(script_url=self.V111)
+        self.assertEqual(self.refused(want=inputs(harbor_version="2.15.0"), old=old, rec=rec), [])
+
+    def test_upgrade_moving_to_older_installer(self):
+        self.assertIn("v1.2.0 or later", self.refused(want=inputs(script_url=self.V111, harbor_version="2.15.0"))[0])
+
+    def test_first_update_upgrade_on_v1_1_1(self):
+        old = {k: v for k, v in inputs(script_url=self.V111).items() if k not in ("ca_rotations", "cert_renewals")}
+        want = dict(old, harbor_version="2.15.0")
+        self.assertIn("v1.2.0 or later", self.refused(want=want, old=old, rec=None)[0])
+
+    def test_v1_1_1_other_work_allowed(self):
+        rec = facts(installer_version="1.1.1", installer_url=self.V111)
+        old = inputs(script_url=self.V111)
+        self.assertEqual(self.refused(want=inputs(script_url=self.V111, projects="library rancher velero",
+                                                  cert_renewals=1), old=old, rec=rec), [])
+
+    def test_upgrade_custom_url_left_to_vm(self):
+        url = "https://example.com/mirror/install_harbor.sh"
+        rec = facts(installer_url="https://example.com/old/install_harbor.sh", installer_version="1.1.1")
+        self.assertEqual(self.refused(want=inputs(script_url=url, harbor_version="2.15.0"),
+                                      old=inputs(script_url=rec["installer_url"]), rec=rec), [])
+
     def test_offline_prep(self):
         old = inputs(run_arg="offline-prep")
         self.assertIn("offline-prep", self.refused(want=inputs(run_arg="offline-prep", harbor_version="2.15.0"),
@@ -265,6 +301,10 @@ class BlueprintTests(unittest.TestCase):
     def test_defaults_match(self):
         for name in ("duration_days", "ca_rotations", "cert_renewals", "cert_renew_before_days"):
             self.assertEqual(self.inputs[name]["default"], L["DEFAULTS"][name], name)
+
+    def test_duration_range(self):
+        # Installer v1.3.0 issues server certificates for 730 days at most (Q42).
+        self.assertEqual(self.inputs["duration_days"]["constraints"][0]["in_range"], [31, 730])
 
     def test_updatable_inputs(self):
         updatable = {name for name, spec in self.inputs.items() if spec.get("allow_update")}

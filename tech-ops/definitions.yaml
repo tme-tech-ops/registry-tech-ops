@@ -37,8 +37,8 @@ dsl_definitions:
     SCRIPT_URL: { concat: ["'", { jmespath: ["[0] || ''", [{ get_input: script_url }]] }, "'"] }
     OFFLINE_MODE: { get_input: offline_mode }
     DURATION_DAYS: { get_input: duration_days }
-    # The CA's own lifetime, 10 years. Installer v1.1.1 doesn't read it yet:
-    # there the CA lasts DURATION_DAYS.
+    # The lifetime of a CA made now (a first install or a CA rotation), 10 years.
+    # Installers before v1.2.0 don't read it: there a CA lasts DURATION_DAYS.
     CA_DURATION_DAYS: 3650
     CERT_RENEW_BEFORE_DAYS: { get_input: cert_renew_before_days }
     REGISTRY_COMMON_NAME: { concat: ["'", { get_input: common_name }, "'"] }

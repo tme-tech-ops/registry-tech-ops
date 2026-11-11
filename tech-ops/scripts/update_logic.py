@@ -27,8 +27,10 @@ from datetime import datetime, timezone
 import re
 
 DEFAULT_SCRIPT_URL = ("https://github.com/Chubtoad5/harbor-registry-installer/releases/download/"
-                      "v1.1.1/install_harbor.sh")
+                      "v1.3.0/install_harbor.sh")
 MIN_INSTALLER = (1, 1, 1)
+# An upgrade needs an installer that dumps Harbor's database before it changes anything.
+MIN_UPGRADE_INSTALLER = (1, 2, 0)
 DEFAULTS = {"run_arg": "install-harbor", "offline_mode": False, "projects": "",
             "duration_days": 365, "ca_rotations": 0, "cert_renewals": 0,
             "cert_renew_before_days": 30}
@@ -113,6 +115,19 @@ def installer_too_old(facts):
     return bool(facts) and (version(facts.get("installer_version")) or (0, 0, 0)) < MIN_INSTALLER
 
 
+def upgrade_installer(want, facts):
+    """The installer version this update would run: the Script URL's release
+    when the update moves it (env_precheck downloads it before install_app
+    runs), otherwise the recorded one. None when it can't be told, such as a
+    URL that isn't a release asset; harbor_app.sh then checks on the VM."""
+    url = setting(want, "script_url")
+    if not facts:
+        return installer_release(url)
+    if url and url != facts.get("installer_url"):
+        return installer_release(url)
+    return version(facts.get("installer_version"))
+
+
 def install_drift(want, old, facts, now):
     """{item: why} for what install_app's update has to do. Empty: nothing.
     An update doesn't run an installer older than v1.1.1 (update_checks
@@ -189,6 +204,13 @@ def refusals(want, old, facts, now):
         elif setting(want, "offline_mode"):
             reasons.append("Upgrading Harbor in airgapped mode isn't supported yet, because it needs a new "
                            f"offline package. Update again with Harbor Version {text(running)}.")
+        else:
+            inst = upgrade_installer(want, facts)
+            if inst and inst < MIN_UPGRADE_INSTALLER:
+                reasons.append(f"Upgrading Harbor needs installer v{text(MIN_UPGRADE_INSTALLER)} or later, "
+                               "which dumps Harbor's database before it changes anything, and this update "
+                               f"would run v{text(inst)}. Set Script URL to {DEFAULT_SCRIPT_URL} (this "
+                               "version's default), in this update or before it.")
     rotating = False
     for name, label in COUNTERS:
         done, wanted = applied(facts, old, name), number(want, name)

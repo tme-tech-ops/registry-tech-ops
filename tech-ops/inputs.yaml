@@ -8,12 +8,14 @@ inputs:
     allow_update: true
     display_label: Duration
     description: |
-      Days the server certificate is valid. It's renewed by an update in its last
-      30 days, under the same CA. A change applies to the next certificate issued.
+      Days the server certificate is valid, at most 730: Apple devices reject a
+      longer one, which breaks Harbor's web UI in Safari. It's renewed by an update
+      in its last 30 days, under the same CA. A change applies to the next
+      certificate issued.
     default: 365
     constraints:
-      - in_range: [31, 36500]
-        error_message: Must be between 31 and 36500 days (a certificate is renewed in its last 30).
+      - in_range: [31, 730]
+        error_message: Must be between 31 and 730 days (a certificate is renewed in its last 30, and Apple devices reject more than 825).
     display:
       group: certificate_config
       index: 1
@@ -156,8 +158,9 @@ inputs:
     display_label: Harbor Version
     description: |
       Harbor release version, for example 2.15.0 (no leading v). An update to a
-      later version upgrades Harbor, after a dump of its database. A lower version
-      is refused, and so is any change in airgapped mode.
+      later version upgrades Harbor, after the installer dumps its database (Script
+      URL v1.2.0 or later). A lower version is refused, and so is any change in
+      airgapped mode.
     default: "2.15.0"
     constraints:
       - pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
@@ -332,8 +335,8 @@ inputs:
       installer release this blueprint was tested with. A GitHub release asset is
       checked against that release's SHA256SUMS before it runs. An update keeps the
       URL a deployment was created with: change it to move to another installer.
-      Updates need v1.1.1 or later.
-    default: "https://github.com/Chubtoad5/harbor-registry-installer/releases/download/v1.1.1/install_harbor.sh"
+      Updates need v1.1.1 or later, and a Harbor Version upgrade v1.2.0 or later.
+    default: "https://github.com/Chubtoad5/harbor-registry-installer/releases/download/v1.3.0/install_harbor.sh"
     constraints:
       - pattern: '^https?://[^\s'']+/install_harbor\.sh$'
         error_message: Enter the URL of install_harbor.sh (no spaces or single quotes).

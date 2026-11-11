@@ -15,8 +15,8 @@ set -u
 # from 1.2.0.0 still runs its older installer copy, which redeploys Harbor and
 # replaces the server key.
 #
-# Uninstalling also removes the database dumps that updates made before an
-# upgrade (/data/backup/registry-tech-ops): they are Harbor's data too.
+# Uninstalling also removes the database dumps the installer made before each
+# upgrade (/data/backup/harbor-installer, installer v1.2.0 and later).
 
 workflow="$(ctx workflow-id 2>/dev/null || echo unknown)"
 
@@ -26,7 +26,6 @@ case "${workflow}" in
             if [ -x ~/install_harbor.sh ]; then
                 ctx logger info "Uninstalling Harbor."
                 (cd ~ && sudo -E ./install_harbor.sh uninstall-harbor) || exit 1
-                sudo rm -rf /data/backup/registry-tech-ops
             else
                 ctx logger info "install_harbor.sh not found in the home directory: nothing to uninstall."
             fi

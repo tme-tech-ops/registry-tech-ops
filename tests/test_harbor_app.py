@@ -97,7 +97,7 @@ class HarborAppTests(unittest.TestCase):
         (self.t / "live").write_text("2.14.1")
         self.scripts = self.t / "nativeedge-ctx/scripts"
         self.scripts.mkdir(parents=True)
-        self.installer("1.1.1")
+        self.installer("1.3.0")
 
     def installer(self, version):
         path = self.t / "home/install_harbor.sh"
@@ -166,13 +166,30 @@ class HarborAppTests(unittest.TestCase):
         self.assertEqual(self.log("installer.log").split()[0], "install-harbor")
         self.assertNotIn("update-certificates", self.log("installer.log"))
 
-    def test_upgrade_dumps_first(self):
+    def test_upgrade_leaves_dump_to_installer(self):
         self.marker()
         done = self.run_op(HARBOR_VERSION="2.15.0")
         self.assertEqual(done.returncode, 0, self.log("ctx.log"))
-        dumps = list((self.t / "root/data/backup/registry-tech-ops").glob("harbor-db-v2.14.1-*.sql.gz"))
-        self.assertEqual(len(dumps), 1)
+        self.assertFalse((self.t / "root/data/backup").exists(), "the blueprint makes no dump of its own")
+        self.assertTrue(self.log("installer.log").startswith("install-harbor "))
+        self.assertIn("/data/backup/harbor-installer", self.log("ctx.log"))
         self.assertEqual(self.log("live"), "2.15.0")
+
+    def test_upgrade_needs_installer_that_dumps(self):
+        self.installer("1.1.1")
+        self.marker()
+        done = self.run_op(HARBOR_VERSION="2.15.0")
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("v1.2.0 or later", "\n".join(self.errors()))
+        self.assertEqual(self.log("installer.log"), "")
+        self.assertEqual(self.log("live"), "2.14.1")
+
+    def test_v1_1_1_other_work_runs(self):
+        self.installer("1.1.1")
+        self.marker()
+        done = self.run_op(CERT_RENEWALS="1")
+        self.assertEqual(done.returncode, 0, self.log("ctx.log"))
+        self.assertTrue(self.log("installer.log").startswith("update-certificates NEW_CERT_GEN=1"))
 
     def test_upgrade_needs_disk(self):
         self.marker()

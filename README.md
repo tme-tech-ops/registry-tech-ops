@@ -24,7 +24,7 @@ default of **Script URL**:
 
 | Blueprint | Installer |
 |---|---|
-| 1.3.0.0 | [`v1.1.1`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.1.1), checked against the release's `SHA256SUMS` |
+| 1.3.0.0 | [`v1.3.0`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.3.0), checked against the release's `SHA256SUMS` |
 | 1.2.1.0 | [`v1.1.1`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.1.1), checked against the release's `SHA256SUMS` |
 | 1.2.0.0 | commit `1bd7b54`, since tagged [`v1.0.0`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.0.0) |
 
@@ -80,7 +80,7 @@ proxy target come from that deployment's capabilities; there is no input for the
 
 | Display Name | Input Key | Default | Description |
 |---|---|---|---|
-| Duration | `duration_days` | `365` | Days the server certificate is valid (31 or more). An update in its last 30 days renews it under the same CA. A change applies to the next certificate issued |
+| Duration | `duration_days` | `365` | Days the server certificate is valid, 31 to 730: Apple devices reject a longer one, which breaks Harbor's web UI in Safari. An update in its last 30 days renews it under the same CA. A change applies to the next certificate issued |
 | Common Name | `common_name` | `registry.harbor.edge.lab` | Certificate Common Name (CN) — also used as the FQDN for the Harbor UI URL output |
 | Country | `country` | `US` | Certificate country code (2-letter ISO) |
 | State | `state` | `MA` | Certificate state or province |
@@ -114,7 +114,7 @@ place:
 |---|---|
 | Nothing, and the certificate has more than 30 days left | Nothing |
 | Nothing, and the certificate is in its last 30 days | The installer issues a new server certificate under the same CA and redeploys Harbor (about a minute's outage). Clients keep working |
-| **Harbor Version**, higher | The update checks the credentials and the disk (4 GB free), dumps Harbor's database, then upgrades Harbor (about a minute's outage) |
+| **Harbor Version**, higher | The update checks the credentials, the disk (4 GB free) and that the installer is `v1.2.0` or later. The installer dumps Harbor's database, upgrades Harbor (about a minute's outage), then removes the old version's images |
 | **Harbor Version**, lower | Refused before anything runs: an older Harbor can't start on a newer database |
 | **Registry Projects**, names added | They are created. Names removed are kept in Harbor, with a warning |
 | **CA Rotations**, raised by one | A new CA and server certificate. Every client must then trust the new CA (`harbor_ca_cert`) |
@@ -132,27 +132,33 @@ project deleted in its UI, aren't seen. A reinstall of `install_app` and
 - **Refused updates** fail with the reason on the `update_checks` node and
   change nothing: a lower version, a version change in airgapped mode, any
   change to an `offline-prep` deployment, a lowered counter, a CA that has
-  expired unless CA Rotations goes up, and a Duration within the 30-day renewal
-  window. On the VM, the update also stops before changing anything if Harbor
+  expired unless CA Rotations goes up, a Duration within the 30-day renewal
+  window, and a Harbor Version upgrade with an installer older than `v1.2.0`
+  (set Script URL to this version's default, in the same update or before it). On the VM, the update also stops before changing anything if Harbor
   isn't answering or rejects the deployment's credentials. If you changed the
   password in Harbor's UI, change it back there: an update can't change it.
 - **Renewal needs an update.** DAP doesn't run updates by itself, so run one
   with no change in the certificate's last 30 days. With the default Duration of
-  365, that's once a year. On installer `v1.1.1` the CA lasts as long as the
-  first server certificate, so a deployment's first renewal is a CA rotation.
+  365, that's once a year. A deployment created with 1.3.0.0 has a ten-year CA.
+  One created with 1.2.x has a CA that lasts as long as its first server
+  certificate, whatever installer it runs now, so its first renewal is a CA
+  rotation (raise CA Rotations by one). With installer `v1.2.0` or later, that
+  gives it a ten-year CA too.
 - **A failed update** keeps the inputs it sent, as DAP does for every failed
   update, so send the right values in the next one. With "Run automatic
   reinstall" ticked, `install_app` is reinstalled: Harbor stays, and the
   installer runs again with the same settings.
 - **Deployments from 1.2.1.0:** the first update to 1.3.0.0 records Harbor's
-  state, and the installer reports "No change".
+  state, and the installer reports "No change". They keep installer `v1.1.1`
+  until Script URL changes. Moving it to this version's default changes nothing
+  on the VM, and is needed before a Harbor Version upgrade.
 - **Deployments from 1.2.0.0** still have installer `1bd7b54` on the VM. Their
   first update only records the state. Other changes are refused until Script
   URL is set to this version's default. That update redeploys Harbor once (a
   short outage), and keeps its data and CA.
 - **Uninstalling** an `install-harbor` deployment uninstalls Harbor and deletes
-  its data (images, projects, users, database), and the database dumps made by
-  updates. Uninstalling an `offline-prep` deployment leaves the VM's Harbor, if
+  its data (images, projects, users, database), and the database dumps the
+  installer made before upgrades. Uninstalling an `offline-prep` deployment leaves the VM's Harbor, if
   any, alone.
 - **A Heal** of `install_app` re-runs the installer with the deployment's
   settings, which changes nothing when nothing changed.
@@ -165,11 +171,14 @@ project deleted in its UI, aren't seen. A reinstall of `install_app` and
 
 ### Restoring Harbor's database
 
-Before an upgrade, the update dumps Harbor's database (`pg_dumpall` from
-`harbor-db`, gzipped, root only) to
-`/data/backup/registry-tech-ops/harbor-db-v<old version>-<UTC time>.sql.gz` and
-names the file in the event log. If an upgrade fails and Harbor doesn't come back,
-restore that dump into the old version, following the restore steps of the
-installer release this version pins.
+Before an upgrade, the installer (`v1.2.0` and later) dumps Harbor's database
+(`pg_dumpall --clean --if-exists` from `harbor-db`, gzipped, root only) to
+`/data/backup/harbor-installer/harbor-db-v<old version>-<UTC time>.sql.gz`, and
+names the file in the event log. A failed dump stops the upgrade before anything
+changes. If an upgrade fails and Harbor doesn't come back, follow "Restoring the
+database after a failed upgrade" in the
+[installer's README](https://github.com/Chubtoad5/harbor-registry-installer/blob/v1.3.0/README.md).
+It reinstalls the old version and loads that dump. The installer keeps the old
+version's offline installer for this.
 
 See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.

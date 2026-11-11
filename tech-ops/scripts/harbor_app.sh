@@ -11,7 +11,8 @@
 #   1. checks, changing nothing: Harbor answers, it accepts the deployment's
 #      credentials, the installer is v1.1.1 or later, and the version doesn't go
 #      down;
-#   2. before an upgrade, checks the disk and dumps Harbor's database;
+#   2. before an upgrade, checks the disk, and that the installer is v1.2.0 or
+#      later: that installer dumps Harbor's database before it changes anything;
 #   3. rotates the CA or renews the server certificate when its counter went up
 #      (update-certificates);
 #   4. re-runs install-harbor with every setting. The installer changes only what
@@ -147,20 +148,17 @@ if [ "$HARBOR_VERSION" != "$live" ]; then
         fail "Upgrading Harbor in airgapped mode isn't supported yet. Nothing was changed."
     fi
 
-    # 2. Before the upgrade: room for the new images, and a database dump.
-    # (Until the pinned installer makes the dump itself.)
+    # 2. Before the upgrade: an installer that dumps the database first (v1.2.0
+    # and later), and room for the new images. The old images go only after.
+    if ! at_least "$have" 1.2.0; then
+        fail "Upgrading Harbor needs installer v1.2.0 or later, which dumps Harbor's database before it changes anything, and this deployment's installer is v${have}. Nothing was changed. Set Script URL to the installer release this blueprint version names as its default, in this update or before it."
+    fi
     docker_root=$(sudo docker info -f '{{.DockerRootDir}}' 2>/dev/null) || docker_root=/var/lib/docker
     for dir in "$docker_root" /data; do
         free=$(num "$(free_kb "$dir")")
         [ "$free" -ge 4194304 ] || fail "Upgrading Harbor needs 4 GB free on ${dir}, and $((free / 1048576)) GB is free. Nothing was changed."
     done
-    dump="/data/backup/registry-tech-ops/harbor-db-v${live}-$(date -u +%Y%m%d%H%M%S).sql.gz"
-    log "Dumping Harbor's database to ${dump} before upgrading ${live} to ${HARBOR_VERSION}."
-    sudo sh -c 'umask 077 && mkdir -p "$(dirname "$1")" && docker exec harbor-db pg_dumpall -U postgres | gzip > "$1"' sh "$dump" \
-        || fail "The database dump failed. Nothing was changed."
-    sudo sh -c 'gzip -dc "$1" | head -c 4096 | grep -q "PostgreSQL database cluster dump"' sh "$dump" \
-        || fail "The database dump ${dump} is empty or incomplete. Nothing was changed."
-    log "Database dumped. To restore after a failed upgrade, see the README (Restoring Harbor's database)."
+    log "Upgrading Harbor ${live} to ${HARBOR_VERSION}. The installer dumps the database to /data/backup/harbor-installer first. To restore after a failed upgrade, see the README (Restoring Harbor's database)."
 fi
 
 # 3. Certificate actions, before install-harbor, so a CA that has expired can be

@@ -246,6 +246,14 @@ class RefusalTests(unittest.TestCase):
         self.assertEqual(self.refused(want=inputs(script_url=self.V111, projects="library rancher velero",
                                                   cert_renewals=1), old=old, rec=rec), [])
 
+    def test_refused_upgrade_is_not_drift(self):
+        # B4a: the guard refuses it, so install_app must not run (Spec 01: never drift).
+        rec = facts(installer_version="1.1.1", installer_url=self.V111)
+        want = inputs(script_url=self.V111, harbor_version="2.15.0")
+        self.assertNotIn("harbor_version", L["install_drift"](want, inputs(script_url=self.V111), rec, NOW))
+        moved = inputs(harbor_version="2.15.0")
+        self.assertIn("harbor_version", L["install_drift"](moved, inputs(script_url=self.V111), rec, NOW))
+
     def test_upgrade_custom_url_left_to_vm(self):
         url = "https://example.com/mirror/install_harbor.sh"
         rec = facts(installer_url="https://example.com/old/install_harbor.sh", installer_version="1.1.1")

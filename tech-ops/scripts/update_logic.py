@@ -149,7 +149,11 @@ def requested(want, old, facts, now):
     airgapped = bool(setting(want, "offline_mode"))
     running, asked = version(facts.get("harbor_version")), version(setting(want, "harbor_version"))
     if running and asked and asked > running and not airgapped:
-        found["harbor_version"] = f"{text(running)} -> {text(asked)}"
+        # An upgrade needing a newer installer is refused (update_checks), and a
+        # refused change is never drift here.
+        inst = upgrade_installer(want, facts)
+        if not (inst and inst < MIN_UPGRADE_INSTALLER):
+            found["harbor_version"] = f"{text(running)} -> {text(asked)}"
     have = set(facts.get("projects") or [])
     missing = [name for name in projects(want) if name not in have]
     if missing and facts.get("projects_read", True):

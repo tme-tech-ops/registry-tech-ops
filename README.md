@@ -165,8 +165,10 @@ project deleted in its UI, aren't seen. A reinstall of `install_app` and
   its data (images, projects, users, database), and the database dumps the
   installer made before upgrades. Uninstalling an `offline-prep` deployment leaves the VM's Harbor, if
   any, alone.
-- **A Heal** of `install_app` re-runs the installer with the deployment's
-  settings, which changes nothing when nothing changed.
+- **A Heal** of `install_app` with **Force reinstall** ticked re-runs the
+  installer with the deployment's settings, which changes nothing when nothing
+  changed. Without it, DAP's Heal skips `install_app`, which has no status
+  check.
 - To resize the VM under the registry, update its **edge-cloudinit-linux**
   deployment with Force ticked (this deployment depends on it). Harbor comes back
   after the VM restarts.

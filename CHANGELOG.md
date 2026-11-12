@@ -3,7 +3,7 @@
 All notable changes to this blueprint are recorded here. The version is also
 the catalog revision to upload the blueprint as.
 
-## 1.3.0.0 - unreleased
+## 1.3.0.0 - 2026-11-11
 
 Moves to harbor-registry-installer `v1.3.0`. Updates can now change Harbor:
 upgrade it, create projects, renew its certificate and rotate its CA. Every

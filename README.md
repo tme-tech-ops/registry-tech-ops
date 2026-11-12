@@ -9,6 +9,7 @@ This blueprint is designed for **NativeEdge Endpoints** on **Dell Automation Pla
 
 | Release | DAP | DDPC | Version | Tested |
 |---|---|---|---|---|
+| [`1.3.0.0`](https://github.com/tme-tech-ops/registry-tech-ops/releases/tag/1.3.0.0) | 2.1.1.0 | 4.3.0.0 | 1.3.0.0 | yes |
 | [`1.2.1.0`](https://github.com/tme-tech-ops/registry-tech-ops/releases/tag/1.2.1.0) | 2.1.1.0 | 4.3.0.0 | 1.2.1.0 | yes |
 | [`1.2.0.0`](https://github.com/tme-tech-ops/registry-tech-ops/releases/tag/1.2.0.0) | 2.1.1.0 | 4.3.0.0 | 1.2.0.0 | yes |
 | [`1.1.5.0`](https://github.com/tme-tech-ops/registry-tech-ops/releases/tag/1.1.5.0) | 2.0.0.1 | 4.2.0.0 | 1.1.5.0 (branch `ddpc-4.2.0.0-snapshot`) | no |

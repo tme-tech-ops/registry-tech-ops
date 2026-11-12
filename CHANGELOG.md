@@ -3,6 +3,48 @@
 All notable changes to this blueprint are recorded here. The version is also
 the catalog revision to upload the blueprint as.
 
+## 1.3.0.0 - unreleased
+
+Moves to harbor-registry-installer `v1.3.0`. Updates can now change Harbor:
+upgrade it, create projects, renew its certificate and rotate its CA. Every
+other setting stays fixed at install.
+
+- Added: `harbor_version`, `projects`, `script_url`, `duration_days`, `debug`
+  and `hide_log_output` can be changed in an update. A higher Harbor version
+  upgrades Harbor after the installer dumps its database, and needs installer
+  `v1.2.0` or later. A lower version is refused. Projects
+  added are created, and projects removed are kept. A new Script URL downloads
+  and re-runs that installer.
+- Added: `ca_rotations` and `cert_renewals`. Raising one by one in an update
+  rotates the CA or renews the server certificate once. An update with no change
+  renews a certificate in its last 30 days (hidden input `cert_renew_before_days`).
+- Added: capability `harbor_ca_cert`, Harbor's CA in PEM.
+- Added: node `update_checks`, which refuses an update Harbor can't take,
+  before anything runs, with the reason. The drift checks run on the
+  orchestrator from the update's inputs and the state the last run recorded
+  (`harbor_facts` on `install_app`), so the update's preview is right.
+- Changed: the installer runs through the fabric plugin's `run_script` instead
+  of `run_commands`. `run_commands` wrote every setting, the Harbor password
+  included, to the deployment's event log. The scripts also delete the env file
+  the plugin leaves on the VM, which holds the settings.
+- Changed: a failed installer run is no longer retried. It used to re-run the
+  installer for 15 minutes or more.
+- Changed: in an update, a reinstall of `install_app` refuses an installer older
+  than `v1.1.1`.
+- Changed: `script_url` defaults to the installer's `v1.3.0` release asset.
+  It gives a new CA its own ten-year lifetime (`CA_DURATION_DAYS`), dumps the
+  database before an upgrade and removes the old version's images after one,
+  and refuses a password docker compose would change.
+- Changed: `duration_days` takes 31 to 730 days, where it took 1 to 36500.
+  Installer `v1.3.0` issues server certificates for 730 days at most, because
+  Apple devices reject longer ones and Harbor's web UI then fails in Safari.
+  DAP refuses the update to 1.3.0.0 of a deployment with a Duration over 730
+  unless the update sends a new one (tested).
+- Fixed: a Harbor password starting with `@` failed when it was published as a
+  capability, because the ctx proxy read it as JSON. The capabilities are now
+  written as one JSON value.
+- Removed: `no_drift.py`, which no node uses any more.
+
 ## 1.2.1.0 - 2026-11-06
 
 Moves to harbor-registry-installer `v1.1.1` and fixes what was wrong in 1.2.0.0.

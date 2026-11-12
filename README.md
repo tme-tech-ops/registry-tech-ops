@@ -24,6 +24,7 @@ default of **Script URL**:
 
 | Blueprint | Installer |
 |---|---|
+| 1.3.0.0 | [`v1.3.0`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.3.0), checked against the release's `SHA256SUMS` |
 | 1.2.1.0 | [`v1.1.1`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.1.1), checked against the release's `SHA256SUMS` |
 | 1.2.0.0 | commit `1bd7b54`, since tagged [`v1.0.0`](https://github.com/Chubtoad5/harbor-registry-installer/releases/tag/v1.0.0) |
 
@@ -55,12 +56,12 @@ proxy target come from that deployment's capabilities; there is no input for the
 
 | Display Name | Input Key | Default | Description |
 |---|---|---|---|
-| Harbor Version | `harbor_version` | `2.15.0` | Harbor release version to install, such as `2.15.0` (no leading `v`) |
+| Harbor Version | `harbor_version` | `2.15.0` | Harbor release version to install, such as `2.15.0` (no leading `v`). An update to a later version upgrades Harbor (see "Updating a Deployment") |
 | Harbor Port | `harbor_port` | `443` | HTTPS port Harbor will listen on |
 | Harbor Username | `harbor_username` | `admin` | Harbor administrator. `admin` is Harbor's built-in account. Another name becomes a second system administrator with the same password (Harbor can't rename `admin`), and needs a password of at least 8 characters with a lowercase letter, an uppercase letter and a digit |
 | Harbor Password | `harbor_password` | `changeme` | Harbor administrator password. Harbor hands it to its containers in an env file, which expands `$` and treats a space followed by `#` as a comment, so these are refused: single quotes (`'`), dollar signs (`$`), a `#` after a space, a space or `"` at the start, a space at the end, and control characters |
 | Docker CIDR | `docker_bridge_cidr` | `172.17.0.1/16` | IP CIDR range for the Docker bridge network |
-| Registry Projects | `projects` | `chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent` | Space-separated Harbor project names to create on install (lowercase letters, digits, `.`, `_`, `-`). Defaults to all projects used by the tme-tech-ops suite; empty creates none |
+| Registry Projects | `projects` | `chrislusf e2e-test-images library frrouting haproxytech longhornio metallb rancher velero grafana prom bats kiwigrid prometheus prometheus-operator ingress-nginx kube-state-metrics fluent` | Space-separated Harbor project names to create on install (lowercase letters, digits, `.`, `_`, `-`). Defaults to all projects used by the tme-tech-ops suite; empty creates none. An update creates the names added, and Harbor keeps projects removed from the list |
 | Debug Logging | `debug` | `1` | Set to `1` to enable or `0` to disable debug logging |
 
 ### Environment Configuration
@@ -70,7 +71,7 @@ proxy target come from that deployment's capabilities; there is no input for the
 | Airgapped Mode | `offline_mode` | `false` | Set to `true` to download and install Harbor from an offline package instead of the internet |
 | Offline Binary Configuration Secret | `offline_binary_secret` | *(no default)* | Secret (type: `binary_configuration`) containing the URL, credentials, and version of the offline Harbor archive. Only shown when **Airgapped Mode** is enabled |
 | Install Task | `run_arg` | `install-harbor` | The install task to run. Valid values: `install-harbor` (standard install), `offline-prep` (download artifacts and create an offline package). Mutually exclusive with **Airgapped Mode** |
-| Script URL | `script_url` | *(pinned installer release)* | URL of the installer script to download and execute; the default is the installer release this version was tested with (see "Harbor installer"). A GitHub release asset is checked against that release's `SHA256SUMS`, and the install stops on a mismatch. Mutually exclusive with **Airgapped Mode** |
+| Script URL | `script_url` | *(pinned installer release)* | URL of the installer script to download and execute; the default is the installer release this version was tested with (see "Harbor installer"). A GitHub release asset is checked against that release's `SHA256SUMS`, and the install stops on a mismatch. An update keeps the URL a deployment was created with, so change it to move a deployment to another installer; updates need `v1.1.1` or later. Mutually exclusive with **Airgapped Mode** |
 | Upload offline-prep package | `upload_package` | `false` | When using the `offline-prep` install task, set to `true` to upload the generated offline package to an HTTP server |
 | Upload URL location | `upload_binary_secret` | *(no default)* | Secret (type: `binary_configuration`) pointing to the upload target location. Only shown when **Upload offline-prep package** is enabled |
 | Log Output to hide | `hide_log_output` | `["stdout"]` | Controls which script output streams are suppressed in deployment logs. Valid values: `stdout`, `stderr`, `both` |
@@ -79,12 +80,14 @@ proxy target come from that deployment's capabilities; there is no input for the
 
 | Display Name | Input Key | Default | Description |
 |---|---|---|---|
-| Duration | `duration_days` | `365` | Validity period of the self-signed TLS certificate in days |
+| Duration | `duration_days` | `365` | Days the server certificate is valid, 31 to 730: Apple devices reject a longer one, which breaks Harbor's web UI in Safari. An update in its last 30 days renews it under the same CA. A change applies to the next certificate issued |
 | Common Name | `common_name` | `registry.harbor.edge.lab` | Certificate Common Name (CN) — also used as the FQDN for the Harbor UI URL output |
 | Country | `country` | `US` | Certificate country code (2-letter ISO) |
 | State | `state` | `MA` | Certificate state or province |
 | Location | `location` | `Hopkinton` | Certificate locality (city) |
 | Organization | `organization` | `EdgeLab` | Certificate organization name |
+| CA Rotations | `ca_rotations` | `0` | Raise by one in an update to replace the CA and the server certificate. Every client must then trust the new CA (`harbor_ca_cert`). It can't go down |
+| Certificate Renewals | `cert_renewals` | `0` | Raise by one in an update to issue a new server certificate under the same CA. Clients keep working. It can't go down |
 
 ## Outputs
 
@@ -95,6 +98,7 @@ After a successful deployment the following capabilities are exposed:
 | `harbor_running` | Whether Harbor answers its health check (`/api/v2.0/health`) after the install |
 | `harbor_ip_url` | Harbor UI URL via management IP (e.g. `https://192.168.1.10:443`) |
 | `harbor_fqdn_url` | Harbor UI URL via the configured Common Name FQDN (e.g. `https://registry.harbor.edge.lab:443`) |
+| `harbor_ca_cert` | Harbor's CA certificate (PEM), for clients that have to trust the registry. It changes when the CA is rotated |
 | `harbor_username` | The Harbor administrator, if Harbor accepted its credentials (otherwise `N/A`) |
 | `harbor_password` | The Harbor administrator's password, if Harbor accepted it (otherwise `N/A`) |
 | `offline_package_name` | Name of the generated offline package (populated when `run_arg: offline-prep`) |
@@ -103,29 +107,85 @@ After a successful deployment the following capabilities are exposed:
 
 ## Updating a Deployment
 
-The registry is installed once, at install. Every input is locked and an
-update never re-runs the installer, so an update with no change, or a move to a
-new revision of this blueprint, leaves Harbor and its data as they are. Harbor
-upgrades, certificate renewal and adding projects are planned as update
-features.
+An update changes Harbor only when one of these changed, and leaves its data in
+place:
 
+| In the update | What happens on the VM |
+|---|---|
+| Nothing, and the certificate has more than 30 days left | Nothing |
+| Nothing, and the certificate is in its last 30 days | The installer issues a new server certificate under the same CA and redeploys Harbor (about a minute's outage). Clients keep working |
+| **Harbor Version**, higher | The update checks the credentials, the disk (4 GB free) and that the installer is `v1.2.0` or later. The installer dumps Harbor's database, upgrades Harbor (about a minute's outage), then removes the old version's images |
+| **Harbor Version**, lower | Refused before anything runs: an older Harbor can't start on a newer database |
+| **Registry Projects**, names added | They are created. Names removed are kept in Harbor, with a warning |
+| **CA Rotations**, raised by one | A new CA and server certificate. Every client must then trust the new CA (`harbor_ca_cert`) |
+| **Certificate Renewals**, raised by one | A new server certificate under the same CA |
+| **Script URL** | That installer is downloaded and checked, then re-run with the deployment's settings |
+| **Duration**, **Debug Logging**, **Log Output to hide** | Nothing now: they apply to the next run or certificate |
+
+Every other input is fixed at install, and DAP refuses a change to it. The
+update's preview shows the same plan as the update: the checks run on the
+orchestrator, from what the last run recorded on the deployment
+(`harbor_facts` on `install_app`). Changes made by hand in Harbor, such as a
+project deleted in its UI, aren't seen. A reinstall of `install_app` and
+`env_postcheck` re-runs the installer and refreshes everything.
+
+- **Refused updates** fail with the reason on the `update_checks` node and
+  change nothing: a lower version, a version change in airgapped mode, any
+  change to an `offline-prep` deployment, a lowered counter, a CA that has
+  expired unless CA Rotations goes up, a Duration within the 30-day renewal
+  window, and a Harbor Version upgrade with an installer older than `v1.2.0`
+  (set Script URL to this version's default, in the same update or before it). On the VM, the update also stops before changing anything if Harbor
+  isn't answering or rejects the deployment's credentials. If you changed the
+  password in Harbor's UI, change it back there: an update can't change it.
+- **Renewal needs an update.** DAP doesn't run updates by itself, so run one
+  with no change in the certificate's last 30 days. With the default Duration of
+  365, that's once a year. A deployment created with 1.3.0.0 has a ten-year CA.
+  One created with 1.2.x has a CA that lasts as long as its first server
+  certificate, whatever installer it runs now, so its first renewal is a CA
+  rotation (raise CA Rotations by one). With installer `v1.2.0` or later, that
+  gives it a ten-year CA too.
+- **A failed update** keeps the inputs it sent, as DAP does for every failed
+  update, so send the right values in the next one. With "Run automatic
+  reinstall" ticked, `install_app` is reinstalled: Harbor stays, and the
+  installer runs again with the same settings.
+- **Deployments from 1.2.1.0:** the first update to 1.3.0.0 records Harbor's
+  state, and the installer reports "No change". They keep installer `v1.1.1`
+  until Script URL changes. Moving it to this version's default changes nothing
+  on the VM, and is needed before a Harbor Version upgrade.
+- **A Duration over 730** (1.2.x allowed up to 36500): DAP refuses the update to
+  1.3.0.0 until it sends a Duration of 730 or less with it. The certificate the
+  deployment has is kept, and Apple devices reject one valid for more than 825
+  days. Raise Certificate Renewals by one to issue a certificate for the new
+  Duration under the same CA (tested on installer `v1.1.1`).
+- **Deployments from 1.2.0.0** still have installer `1bd7b54` on the VM. Their
+  first update only records the state. Other changes are refused until Script
+  URL is set to this version's default. That update redeploys Harbor once (a
+  short outage), and keeps its data and CA.
 - **Uninstalling** an `install-harbor` deployment uninstalls Harbor and deletes
-  its data (images, projects, users, database). Uninstalling an `offline-prep`
-  deployment leaves the VM's Harbor, if any, alone.
-- **A reinstall or Heal** of `install_app` keeps Harbor and its data, and re-runs
-  the installer with the deployment's settings. On a deployment installed from
-  1.2.1.0, an unchanged re-run changes nothing ("No change: Harbor is running as
-  requested"). A deployment installed from 1.2.0.0 keeps that version's
-  installer on the VM, which redeploys Harbor and replaces its server
-  certificate and key, with a short outage; clients that trust the CA keep
-  working.
-- **Updating a 1.2.0.0 deployment to 1.2.1.0** changes nothing on the VM: the
-  installer copy it already has stays in place.
+  its data (images, projects, users, database), and the database dumps the
+  installer made before upgrades. Uninstalling an `offline-prep` deployment leaves the VM's Harbor, if
+  any, alone.
+- **A Heal** of `install_app` with **Force reinstall** ticked re-runs the
+  installer with the deployment's settings, which changes nothing when nothing
+  changed. Without it, DAP's Heal skips `install_app`, which has no status
+  check.
 - To resize the VM under the registry, update its **edge-cloudinit-linux**
-  deployment with Force ticked (this deployment depends on it); Harbor comes back
+  deployment with Force ticked (this deployment depends on it). Harbor comes back
   after the VM restarts.
-- If the VM gets a new IP address (for example a segment change), `harbor_ip_url`
-  and the certificate still show the old address until an IP-change repair
-  feature exists; the FQDN URL keeps working if DNS follows the VM.
+- If the VM gets a new IP address, the next update that runs the installer puts
+  the new address in the certificate and in `harbor_ip_url`. The FQDN URL keeps
+  working if DNS follows the VM.
+
+### Restoring Harbor's database
+
+Before an upgrade, the installer (`v1.2.0` and later) dumps Harbor's database
+(`pg_dumpall --clean --if-exists` from `harbor-db`, gzipped, root only) to
+`/data/backup/harbor-installer/harbor-db-v<old version>-<UTC time>.sql.gz`, and
+names the file in the event log. A failed dump stops the upgrade before anything
+changes. If an upgrade fails and Harbor doesn't come back, follow "Restoring the
+database after a failed upgrade" in the
+[installer's README](https://github.com/Chubtoad5/harbor-registry-installer/blob/v1.3.0/README.md).
+It reinstalls the old version and loads that dump. The installer keeps the old
+version's offline installer for this.
 
 See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.

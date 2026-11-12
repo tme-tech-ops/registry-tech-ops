@@ -1,9 +1,10 @@
 dsl_definitions:
 
-  # For the nodes that only do something when the deployment is installed: they
-  # never drift, so an update never re-runs the installer or its checks.
-  no_drift: &no_drift
-    implementation: tech-ops/scripts/no_drift.py
+  # Update logic on the orchestrator, with no SSH: the guard (update_checks),
+  # the drift checks, and install_app's postupdate. See
+  # tech-ops/scripts/update_logic.py.
+  update_logic: &update_logic
+    implementation: tech-ops/scripts/update_logic.py
     executor: central_deployment_agent
 
   # SSH through the Endpoint proxy to the VM this deployment is deployed on.
@@ -24,16 +25,22 @@ dsl_definitions:
   install_task: &install_task
     jmespath: ["[0] || 'install-harbor'", [{ get_input: run_arg }]]
 
-  run_install_cmds: &run_install_cmds
-    - concat:
-        - "sudo -E ./install_harbor.sh "
-        - *install_task
-
-# The fabric plugin passes these as unquoted `export NAME=value`, so every text
-# value is wrapped in single quotes here, and the inputs refuse a single quote.
-# Numbers and booleans need no quotes.
-  shell_env: &shell_env
+# Every Harbor setting, for install_app's create and update. run_script writes
+# them to an env file on the VM, not to the event log, and each script deletes
+# that file first. The plugin exports them unquoted, so every text value is
+# wrapped in single quotes here, and the inputs refuse a single quote. Numbers
+# and booleans need no quotes.
+  harbor_env: &harbor_env
+    RUN_ARG: *install_task
+    # Recorded in harbor_facts, so an update sees when Script URL changes.
+    # Hidden by airgapped mode, it arrives as null.
+    SCRIPT_URL: { concat: ["'", { jmespath: ["[0] || ''", [{ get_input: script_url }]] }, "'"] }
+    OFFLINE_MODE: { get_input: offline_mode }
     DURATION_DAYS: { get_input: duration_days }
+    # The lifetime of a CA made now (a first install or a CA rotation), 10 years.
+    # Installers before v1.2.0 don't read it: there a CA lasts DURATION_DAYS.
+    CA_DURATION_DAYS: 3650
+    CERT_RENEW_BEFORE_DAYS: { get_input: cert_renew_before_days }
     REGISTRY_COMMON_NAME: { concat: ["'", { get_input: common_name }, "'"] }
     COUNTRY: { concat: ["'", { get_input: country }, "'"] }
     STATE: { concat: ["'", { get_input: state }, "'"] }
@@ -49,14 +56,58 @@ dsl_definitions:
     DEBUG: { get_input: debug }
     # Online, ignore a VERSION.txt that an earlier offline-prep left on the VM.
     HARBOR_FORCE_ONLINE: { jmespath: ["[0] && 'false' || 'true'", [{ get_input: offline_mode }]] }
+    CA_ROTATIONS: { get_input: ca_rotations }
+    CERT_RENEWALS: { get_input: cert_renewals }
 
-  command_fabric_env: &command_fabric_env
-    shell_env:
-      <<: *shell_env
-    host_string: { get_environment_capability: vm_name_id }
-    user: { get_environment_capability: vm_user_name }
-    key: { get_secret: { get_environment_capability: vm_ssh_private_key } }
-    port: 22
+# A failed script exits 1 and isn't retried: a retry would re-run the installer
+# for 15 minutes or more.
+  harbor_app: &harbor_app
+    executor: central_deployment_agent
+    implementation: fabric.fabric_plugin.tasks.run_script
+    inputs:
+      script_path: tech-ops/scripts/harbor_app.sh
+      process:
+        env: *harbor_env
+      fabric_env: *vm_fabric_env
+      hide_output: { get_input: hide_log_output }
+      proxy_settings: *vm_proxy_settings
+      non_recoverable_error_exit_codes: [1]
+
+  env_precheck_op: &env_precheck_op
+    implementation: fabric.fabric_plugin.tasks.run_script
+    inputs:
+      script_path: tech-ops/scripts/env_precheck.sh
+      process:
+        env:
+          OFFLINE_MODE: { get_input: offline_mode }
+          OFFLINE_BINARY_URL: { concat: ["'", { get_input: offline_binary_url }, "'"] }
+          OFFLINE_BINARY_USER: { concat: ["'", { get_input: offline_binary_access_user }, "'"] }
+          OFFLINE_BINARY_PASSWORD: { concat: ["'", { get_secret: [ { get_input: offline_binary_secret }, binary_image_access_token ] }, "'"] }
+          SCRIPT_URL: { concat: ["'", { get_input: script_url }, "'"] }
+      fabric_env: *vm_fabric_env
+      hide_output: { get_input: hide_log_output }
+      proxy_settings: *vm_proxy_settings
+      non_recoverable_error_exit_codes: [1]
+
+  env_postcheck_op: &env_postcheck_op
+    implementation: fabric.fabric_plugin.tasks.run_script
+    inputs:
+      script_path: tech-ops/scripts/env_postcheck.sh
+      process:
+        env:
+          RUN_ARG: *install_task
+          HARBOR_PORT: { get_input: harbor_port }
+          HARBOR_USERNAME: { concat: ["'", { get_input: harbor_username }, "'"] }
+          HARBOR_PASSWORD: { concat: ["'", { get_input: harbor_password }, "'"] }
+          COMMON_NAME: { concat: ["'", { get_input: common_name }, "'"] }
+          UPLOAD_OFFLINE_PACKAGE: { get_input: upload_package }
+          UPLOAD_BASE_URL: { concat: ["'", { get_input: upload_binary_url }, "'"] }
+          UPLOAD_OFFLINE_PACKAGE_USER: { concat: ["'", { get_input: upload_binary_access_user }, "'"] }
+          UPLOAD_OFFLINE_PACKAGE_PASSWORD: { concat: ["'", { get_secret: [ { get_input: upload_binary_secret }, binary_image_access_token ] }, "'"] }
+      fabric_env: *vm_fabric_env
+      hide_output: { get_input: hide_log_output }
+      proxy_settings: *vm_proxy_settings
+      non_recoverable_error_exit_codes: [1]
 
 # Get VM info
   get_vm_info_inputs: &get_vm_info_inputs
@@ -78,43 +129,46 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs: *get_vm_info_inputs
 
+  # Refuses an update Harbor can't take (a lower version, a lowered counter, an
+  # expired CA without a rotation, ...): the reasons are its drift, and its
+  # update raises with them. Its create raises too, which is what runs when
+  # "Run automatic reinstall" reinstalls it. The other nodes report no drift for
+  # a refused change, so they leave Harbor alone.
+  update_checks:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create: *update_logic
+        check_drift: *update_logic
+        update: *update_logic
+        postupdate: *update_logic
+    relationships:
+      - type: dell.relationships.depends_on
+        target: vm_info
+
   env_precheck:
     type: dell.nodes.Root
     interfaces:
       dell.interfaces.lifecycle:
-        create:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            script_path: tech-ops/scripts/env_precheck.sh
-            process:
-              env:
-                OFFLINE_MODE: { get_input: offline_mode }
-                OFFLINE_BINARY_URL: { concat: ["'", { get_input: offline_binary_url }, "'"] }
-                OFFLINE_BINARY_USER: { concat: ["'", { get_input: offline_binary_access_user }, "'"] }
-                OFFLINE_BINARY_PASSWORD: { concat: ["'", { get_secret: [ { get_input: offline_binary_secret }, binary_image_access_token ] }, "'"] }
-                SCRIPT_URL: { concat: ["'", { get_input: script_url }, "'"] }
-            fabric_env: *vm_fabric_env
-            hide_output: { get_input: hide_log_output }
-            proxy_settings: *vm_proxy_settings
-        check_drift: *no_drift
+        create: *env_precheck_op
+        # Drift when Script URL changes: update downloads that installer.
+        check_drift: *update_logic
+        update: *env_precheck_op
+        postupdate: *update_logic
     relationships:
-       - type: dell.relationships.depends_on
-         target: vm_info
+      - type: dell.relationships.depends_on
+        target: update_checks
 
   install_app:
     type: dell.nodes.Root
     interfaces:
       dell.interfaces.lifecycle:
-        create:
-          executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
-          inputs:
-            hide_output: { get_input: hide_log_output }
-            proxy_settings: *vm_proxy_settings
-            commands: *run_install_cmds
-            fabric_env:
-              <<: *command_fabric_env
-        check_drift: *no_drift
+        create: *harbor_app
+        # Drift when Harbor needs work. See tech-ops/scripts/update_logic.py.
+        check_drift: *update_logic
+        update: *harbor_app
+        # Fails the update if Harbor isn't as requested afterwards.
+        postupdate: *update_logic
         # Uninstalls Harbor only when the deployment is uninstalled and its
         # Install Task installed Harbor. See tech-ops/scripts/harbor_stop.sh.
         stop:
@@ -129,32 +183,18 @@ node_templates:
             proxy_settings: *vm_proxy_settings
             fabric_env: *vm_fabric_env
     relationships:
-       - type: dell.relationships.depends_on
-         target: env_precheck
+      - type: dell.relationships.depends_on
+        target: env_precheck
 
   env_postcheck:
     type: dell.nodes.Root
     interfaces:
       dell.interfaces.lifecycle:
-        create:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            script_path: tech-ops/scripts/env_postcheck.sh
-            process:
-              env:
-                RUN_ARG: *install_task
-                HARBOR_PORT: { get_input: harbor_port }
-                HARBOR_USERNAME: { concat: ["'", { get_input: harbor_username }, "'"] }
-                HARBOR_PASSWORD: { concat: ["'", { get_input: harbor_password }, "'"] }
-                COMMON_NAME: { concat: ["'", { get_input: common_name }, "'"] }
-                UPLOAD_OFFLINE_PACKAGE: { get_input: upload_package }
-                UPLOAD_BASE_URL: { concat: ["'", { get_input: upload_binary_url }, "'"] }
-                UPLOAD_OFFLINE_PACKAGE_USER: { concat: ["'", { get_input: upload_binary_access_user }, "'"] }
-                UPLOAD_OFFLINE_PACKAGE_PASSWORD: { concat: ["'", { get_secret: [ { get_input: upload_binary_secret }, binary_image_access_token ] }, "'"] }
-            fabric_env: *vm_fabric_env
-            hide_output: { get_input: hide_log_output }
-            proxy_settings: *vm_proxy_settings
-        check_drift: *no_drift
+        create: *env_postcheck_op
+        # Drift whenever install_app drifts: update refreshes the capabilities.
+        check_drift: *update_logic
+        update: *env_postcheck_op
+        postupdate: *update_logic
     relationships:
-       - type: dell.relationships.depends_on
-         target: install_app
+      - type: dell.relationships.depends_on
+        target: install_app

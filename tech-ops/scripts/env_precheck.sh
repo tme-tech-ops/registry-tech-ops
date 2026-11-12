@@ -1,10 +1,13 @@
 #!/bin/sh
-# create for env_precheck: puts the Harbor installer in the home directory.
+# create and update for env_precheck: puts the Harbor installer in the home
+# directory. An update runs it when Script URL changed (update_logic.py).
 #
 # Airgapped mode downloads and extracts the offline package. Otherwise it
 # downloads SCRIPT_URL. A GitHub release asset is checked against the
 # SHA256SUMS of the same release and isn't kept if it doesn't match.
 set -u
+# The fabric plugin leaves the settings in an env file on the VM. It holds a password.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
 
 log() { ctx logger info "$1"; }
 fail() { ctx logger error "$1"; exit 1; }

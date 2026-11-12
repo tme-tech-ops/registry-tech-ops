@@ -2,7 +2,8 @@ tosca_definitions_version: dell_1_1
 
 description: >
   This blueprint installs a Harbor registry (or builds an offline Harbor package) on an existing
-  edge-cloudinit VM. Its settings are fixed at install; an update doesn't re-run the installer.
+  edge-cloudinit VM. An update can upgrade Harbor, create projects, renew its certificate and
+  rotate its CA. Its other settings are fixed at install.
 
 imports:
   - dell/types/types.yaml
@@ -50,6 +51,8 @@ input_groups:
      - state
      - location
      - organization
+     - ca_rotations
+     - cert_renewals
 
 labels:
   csys-obj-type:
@@ -66,7 +69,7 @@ labels:
       - registry-tech-ops
   version:
     values:
-      - "1.2.1.0"
+      - "1.3.0.0"
 
 blueprint_labels:
   env:
